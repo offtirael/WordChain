@@ -1,7 +1,12 @@
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
-class StartWindow(QWidget):
+from ElementEditor import ElementEditorWindow
+from RuleEditor import RuleEditorWindow
+from Practice import PracticeWindow
+
+
+class StartWindow(QMainWindow):
     def __init__(self, parent=None):
         super(StartWindow, self).__init__(parent)
 
@@ -14,6 +19,30 @@ class StartWindow(QWidget):
         self.layout1.addWidget(self.button2)
         self.layout1.addWidget(self.button3)
 
-        self.setLayout(self.layout1)
+        self.cWidget = QWidget()
+        self.cWidget.setLayout(self.layout1)
+
+        self.button1.clicked.connect(self.startElementEditor)
+        self.button2.clicked.connect(self.startRuleEditor)
+        self.button3.clicked.connect(self.startPractice)
+
+        self.setCentralWidget(self.cWidget)
+        #self.setLayout(self.layout1)
 
         self.setWindowTitle("WordChain")
+
+        self.elementEditorWindow = ElementEditorWindow()
+        self.ruleEditorWindow = RuleEditorWindow()
+        self.practiceWindow = PracticeWindow()
+
+    def startElementEditor(self):
+        self.elementEditorWindow.show()
+        self.elementEditorWindow.move(self.x() + 40, self.y() + 40)
+
+    def startRuleEditor(self):
+        self.ruleEditorWindow.show()
+        self.ruleEditorWindow.move(self.x() + 40, self.y() + 40)
+
+    def startPractice(self):
+        self.practiceWindow.show()
+        self.practiceWindow.move(self.x() + 40, self.y() + 40)

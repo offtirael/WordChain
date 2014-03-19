@@ -53,6 +53,25 @@ class ElementEditorWindow(QMainWindow):
         self.rightLayout.addWidget(self.label3)
         self.rightLayout.addWidget(self.rightConnectorCombo)
 
+        # Left menu
+        self.itemListWidget = QListWidget()
+        self.itemListWidget.addItem("Item 1")
+        self.itemListWidget.addItem("Item 2")
+
+        self.leftLayout = QVBoxLayout(self.gBox1)
+
+        self.leftInnerLayout = QHBoxLayout()
+        self.leftLayout.addLayout(self.leftInnerLayout)
+
+        self.newElementName = QLineEdit()
+        self.addNewElement = QPushButton("Add")
+        self.leftInnerLayout.addWidget(self.newElementName)
+        self.leftInnerLayout.addWidget(self.addNewElement)
+
+        self.addNewElement.clicked.connect(self.addItem)
+
+        self.leftLayout.addWidget(self.itemListWidget)
+
         # Layout
         self.centralWidget = QSplitter()
         self.centralWidget.addWidget(self.gBox1)
@@ -64,3 +83,28 @@ class ElementEditorWindow(QMainWindow):
         self.resize(1000, 600)
 
         self.setWindowTitle("WordChain : Element editor")
+
+        self.lst = []
+        self.loadElementList(self.lst)
+
+    def loadElementList(self, lst):
+        self.itemListWidget.clear()
+
+        for item in lst:
+            self.itemListWidget.addItem(item)
+
+    def addItem(self):
+        name = self.newElementName.text()
+        self.newElementName.clear()
+        self.lst.append(name)
+        self.loadElementList(self.lst)
+
+
+
+
+class ElementEditor(object):
+    def __init__(self):
+        self.window = ElementEditorWindow()
+
+    def showWindow(self):
+        self.window.show()

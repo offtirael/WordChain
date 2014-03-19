@@ -1,10 +1,14 @@
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
+from Element import *
+
 
 class ElementEditorWindow(QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, editor, parent=None):
         super(ElementEditorWindow, self).__init__(parent)
+
+        self.editor = editor
 
         # Menu options
         self.fileMenu = QMenu("&File", self)
@@ -17,7 +21,7 @@ class ElementEditorWindow(QMainWindow):
 
         self.menuBar().addMenu(self.fileMenu)
 
-        # Groupboxes
+        # Frames
         self.gBox1 = QFrame()
         self.gBox1.setMaximumSize(QSize(200, 600))
         self.gBox2 = QFrame()
@@ -55,8 +59,7 @@ class ElementEditorWindow(QMainWindow):
 
         # Left menu
         self.itemListWidget = QListWidget()
-        self.itemListWidget.addItem("Item 1")
-        self.itemListWidget.addItem("Item 2")
+        self.itemListWidget.currentItemChanged.connect(self.editor.chooseElement)
 
         self.leftLayout = QVBoxLayout(self.gBox1)
 
@@ -68,9 +71,13 @@ class ElementEditorWindow(QMainWindow):
         self.leftInnerLayout.addWidget(self.newElementName)
         self.leftInnerLayout.addWidget(self.addNewElement)
 
-        self.addNewElement.clicked.connect(self.addItem)
+        self.addNewElement.clicked.connect(self.editor.addElement)
 
         self.leftLayout.addWidget(self.itemListWidget)
+
+        self.deleteButton = QPushButton("Delete element")
+        self.leftLayout.addWidget(self.deleteButton)
+        self.deleteButton.clicked.connect(self.editor.deleteElement)
 
         # Layout
         self.centralWidget = QSplitter()
@@ -84,27 +91,41 @@ class ElementEditorWindow(QMainWindow):
 
         self.setWindowTitle("WordChain : Element editor")
 
-        self.lst = []
-        self.loadElementList(self.lst)
-
-    def loadElementList(self, lst):
-        self.itemListWidget.clear()
-
-        for item in lst:
-            self.itemListWidget.addItem(item)
-
-    def addItem(self):
-        name = self.newElementName.text()
-        self.newElementName.clear()
-        self.lst.append(name)
-        self.loadElementList(self.lst)
-
-
-
 
 class ElementEditor(object):
     def __init__(self):
-        self.window = ElementEditorWindow()
+        self.elementList = []
+        self.window = ElementEditorWindow(editor=self)
+        self.currentElement = None
 
     def showWindow(self):
         self.window.show()
+
+    def addElement(self):
+        name = self.window.newElementName.text()
+        self.window.newElementName.clear()
+
+        element = MetaElement("1", "2", elementName=name)
+
+        self.elementList.append(element)
+
+        self.updateElementListView()
+
+    def deleteElement(self):
+        index = self.window.itemListWidget.currentRow()
+        if index != -1:
+            self.elementList.pop(index)
+            self.updateElementListView()
+
+    def updateElementListView(self):
+        self.window.itemListWidget.clear()
+
+        for item in self.elementList:
+            self.window.itemListWidget.addItem(item.elementName)
+
+    def chooseElement(self):
+        index = self.window.itemListWidget.currentRow()
+        if index != -1:
+            self.currentElement = self.elementList[index]
+            self.window.nameEdit.setText(self.currentElement.elementName)
+        print(self.currentElement.elementName)

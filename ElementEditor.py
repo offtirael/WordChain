@@ -2,6 +2,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
 from Element import *
+from Connectors import *
 
 
 class ElementEditorWindow(QMainWindow):
@@ -27,8 +28,10 @@ class ElementEditorWindow(QMainWindow):
         self.gBox2 = QFrame()
         self.gBox2.setMaximumSize(QSize(200, 200))
 
+        self.scene = QGraphicsScene(-200, -200, 400, 400)
+
         # Graphics view
-        self.graphicsView = QGraphicsView()
+        self.graphicsView = QGraphicsView(self.scene)
         self.graphicsView.setMinimumSize(QSize(600, 600))
 
         # Right menu
@@ -40,14 +43,17 @@ class ElementEditorWindow(QMainWindow):
         self.leftConnectorCombo.addItem("Type 1")
         self.leftConnectorCombo.addItem("Type 2")
         self.leftConnectorCombo.addItem("Type 3")
-        self.leftConnectorCombo.addItem("Type 4")
+        self.leftConnectorCombo.currentIndexChanged.connect(self.editor.changeLeftConnector)
 
         self.label3 = QLabel("Right connector")
         self.rightConnectorCombo = QComboBox()
         self.rightConnectorCombo.addItem("Type 1")
         self.rightConnectorCombo.addItem("Type 2")
         self.rightConnectorCombo.addItem("Type 3")
-        self.rightConnectorCombo.addItem("Type 4")
+        self.rightConnectorCombo.currentIndexChanged.connect(self.editor.changeRightConnector)
+
+        self.applyButton = QPushButton("Apply")
+        self.applyButton.clicked.connect(self.editor.applyChanges)
 
         self.rightLayout = QVBoxLayout(self.gBox2)
         self.rightLayout.addWidget(self.label1)
@@ -56,6 +62,7 @@ class ElementEditorWindow(QMainWindow):
         self.rightLayout.addWidget(self.leftConnectorCombo)
         self.rightLayout.addWidget(self.label3)
         self.rightLayout.addWidget(self.rightConnectorCombo)
+        self.rightLayout.addWidget(self.applyButton)
 
         # Left menu
         self.itemListWidget = QListWidget()
@@ -105,7 +112,7 @@ class ElementEditor(object):
         name = self.window.newElementName.text()
         self.window.newElementName.clear()
 
-        element = MetaElement("1", "2", elementName=name)
+        element = MetaElement(2, 2, elementName=name)
 
         self.elementList.append(element)
 
@@ -124,8 +131,44 @@ class ElementEditor(object):
             self.window.itemListWidget.addItem(item.elementName)
 
     def chooseElement(self):
+        self.window.scene.removeItem(self.currentElement)
         index = self.window.itemListWidget.currentRow()
         if index != -1:
             self.currentElement = self.elementList[index]
             self.window.nameEdit.setText(self.currentElement.elementName)
-        print(self.currentElement.elementName)
+            self.window.scene.addItem(self.currentElement)
+
+            print(self.currentElement.leftConnectorType - 1)
+            print(self.currentElement.rightConnectorType - 1)
+
+            self.window.leftConnectorCombo.setCurrentIndex(self.currentElement.leftConnectorType - 1)
+            self.window.rightConnectorCombo.setCurrentIndex(self.currentElement.rightConnectorType - 1)
+
+    def applyChanges(self):
+        newName = self.window.nameEdit.text()
+        self.currentElement.elementName = newName
+        self.updateElementListView()
+        self.updateScene()
+
+    def updateScene(self):
+        if self.currentElement is not None:
+            self.window.scene.removeItem(self.currentElement)
+            self.window.scene.addItem(self.currentElement)
+
+    def changeLeftConnector(self):
+        index = self.window.leftConnectorCombo.currentIndex()
+        index += 1
+        self.window.scene.removeItem(self.currentElement)
+
+        self.currentElement.changeLeftConnector(index)
+
+        self.window.scene.addItem(self.currentElement)
+
+    def changeRightConnector(self):
+        index = self.window.rightConnectorCombo.currentIndex()
+        index += 1
+        self.window.scene.removeItem(self.currentElement)
+
+        self.currentElement.changeRightConnector(index)
+
+        self.window.scene.addItem(self.currentElement)

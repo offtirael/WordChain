@@ -98,6 +98,20 @@ class ElementEditorWindow(QMainWindow):
 
         self.setWindowTitle("WordChain : Element editor")
 
+    def closeEvent(self, event):
+        msgBox = QMessageBox()
+        msgBox.setText("The document has been modified.")
+        msgBox.setDetailedText("Do you want to save your changes?")
+        msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+        ret = msgBox.exec()
+        if ret == QMessageBox.Save:
+            print("Save")
+        elif ret == QMessageBox.Cancel:
+            print("Cancel")
+        elif ret == QMessageBox.Discard:
+            print("Discard")
+        event.accept()
+
 
 class ElementEditor(object):
     def __init__(self):

@@ -1,5 +1,6 @@
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+import json
 
 from Element import *
 from Connectors import *
@@ -14,11 +15,14 @@ class ElementEditorWindow(QMainWindow):
         # Menu options
         self.fileMenu = QMenu("&File", self)
         self.openAction = self.fileMenu.addAction("&Open...")
-        #openAction.setShortcut("Ctrl+O")
-        self.saveAction = self.fileMenu.addAction("&Save As...")
-        #saveAction.setShortcut("Ctrl+S")
-        self.quitAction = self.fileMenu.addAction("Exit")
-        #quitAction.setShortcut("Ctrl+Q")
+        self.openAction.setShortcut("Ctrl+O")
+        self.saveAsAction = self.fileMenu.addAction("Save As...")
+        self.saveAction = self.fileMenu.addAction("&Save")
+        self.saveAction.setShortcut("Ctrl+S")
+
+        self.saveAsAction.triggered.connect(self.editor.saveAs)
+        self.saveAction.triggered.connect(self.editor.saveToFile)
+        self.openAction.triggered.connect(self.editor.loadFromFile)
 
         self.menuBar().addMenu(self.fileMenu)
 
@@ -99,25 +103,30 @@ class ElementEditorWindow(QMainWindow):
         self.setWindowTitle("WordChain : Element editor")
 
     def closeEvent(self, event):
-        msgBox = QMessageBox()
-        msgBox.setText("The document has been modified.")
-        msgBox.setDetailedText("Do you want to save your changes?")
-        msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
-        ret = msgBox.exec()
-        if ret == QMessageBox.Save:
-            print("Save")
-        elif ret == QMessageBox.Cancel:
-            print("Cancel")
-        elif ret == QMessageBox.Discard:
-            print("Discard")
-        event.accept()
+        if not self.editor.saved:
+            msgBox = QMessageBox()
+            msgBox.setText("The document has been modified.")
+            msgBox.setDetailedText("Do you want to save your changes?")
+            msgBox.setStandardButtons(QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel)
+            ret = msgBox.exec()
+            if ret == QMessageBox.Save:
+                self.editor.saveToFile()
+            elif ret == QMessageBox.Cancel:
+                event.ignore()
+            elif ret == QMessageBox.Discard:
+                pass
+            event.accept()
+        else:
+            event.accept()
 
 
 class ElementEditor(object):
     def __init__(self):
-        self.elementList = []
+        self.elementSet = ElementSet()
         self.window = ElementEditorWindow(editor=self)
         self.currentElement = None
+        self.saved = True
+        self.fileName = None
 
     def showWindow(self):
         self.window.show()
@@ -128,32 +137,31 @@ class ElementEditor(object):
 
         element = MetaElement(2, 2, elementName=name)
 
-        self.elementList.append(element)
+        self.elementSet.addElement(element)
+        #self.elementList.append(element)
 
         self.updateElementListView()
 
     def deleteElement(self):
         index = self.window.itemListWidget.currentRow()
         if index != -1:
-            self.elementList.pop(index)
+            self.elementSet.removeElement(index)
+            #self.elementList.pop(index)
             self.updateElementListView()
 
     def updateElementListView(self):
         self.window.itemListWidget.clear()
 
-        for item in self.elementList:
+        for item in self.elementSet.elementList:
             self.window.itemListWidget.addItem(item.elementName)
 
     def chooseElement(self):
         self.window.scene.removeItem(self.currentElement)
         index = self.window.itemListWidget.currentRow()
         if index != -1:
-            self.currentElement = self.elementList[index]
+            self.currentElement = self.elementSet.elementList[index]
             self.window.nameEdit.setText(self.currentElement.elementName)
             self.window.scene.addItem(self.currentElement)
-
-            print(self.currentElement.leftConnectorType - 1)
-            print(self.currentElement.rightConnectorType - 1)
 
             self.window.leftConnectorCombo.setCurrentIndex(self.currentElement.leftConnectorType - 1)
             self.window.rightConnectorCombo.setCurrentIndex(self.currentElement.rightConnectorType - 1)
@@ -163,6 +171,7 @@ class ElementEditor(object):
         self.currentElement.elementName = newName
         self.updateElementListView()
         self.updateScene()
+        self.saved = False
 
     def updateScene(self):
         if self.currentElement is not None:
@@ -177,6 +186,7 @@ class ElementEditor(object):
         self.currentElement.changeLeftConnector(index)
 
         self.window.scene.addItem(self.currentElement)
+        self.saved = False
 
     def changeRightConnector(self):
         index = self.window.rightConnectorCombo.currentIndex()
@@ -186,3 +196,34 @@ class ElementEditor(object):
         self.currentElement.changeRightConnector(index)
 
         self.window.scene.addItem(self.currentElement)
+        self.saved = False
+
+    def saveToFile(self):
+        if self.fileName is not None:
+            saveFile = QSaveFile(self.fileName)
+            saveFile.open(QIODevice.WriteOnly)
+            data = self.elementSet.toBytes()
+            saveFile.writeData(data)
+            saveFile.commit()
+            self.saved = True
+        else:
+            self.saveAs()
+
+    def saveAs(self):
+        ret = QFileDialog.getSaveFileName(filter='*.elms')
+        self.fileName = ret[0]
+        self.saveToFile()
+
+    def loadFromFile(self):
+        ret = QFileDialog.getOpenFileName(filter='*.elms')
+        self.fileName = ret[0]
+        file = open(self.fileName, 'r')
+
+        st = ''
+        for line in file:
+            st += line
+
+        self.elementSet.fromString(st)
+        file.close()
+        self.updateElementListView()
+        self.saved = True

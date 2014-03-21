@@ -1,6 +1,7 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+import json
 
 from Connectors import *
 
@@ -74,3 +75,52 @@ class MetaElement(QGraphicsItem):
 
         self.formPath.lineTo(self.leftBottom)
         self.formPath.addPath(self.leftConnector.connectorPath)
+
+
+class ElementSet(object):
+    def __init__(self):
+        super(ElementSet, self).__init__()
+        self.elementList = []
+
+    def addElement(self, element):
+        assert isinstance(element, MetaElement)
+        self.elementList.append(element)
+
+    def removeElement(self, index):
+        assert isinstance(index, int)
+        if index < len(self.elementList):
+            self.elementList.pop(index)
+
+    def toJSON(self):
+        lst = []
+        for elem in self.elementList:
+            obj = {'elementName': elem.elementName, 'leftConnectorType': elem.leftConnectorType,
+                   'rightConnectorType': elem.rightConnectorType}
+            lst.append(obj)
+        return lst
+
+    def toString(self):
+        return json.dumps(self.toJSON(), sort_keys=True, indent=4, separators=(',', ': '))
+
+    def toBytes(self):
+        return bytes(self.toString(), encoding='utf8')
+
+    def fromString(self, string):
+        assert isinstance(string, str)
+
+        jsObj = json.loads(string, 'utf8')
+        self.fromJSON(jsObj)
+
+    def fromJSON(self, data):
+        assert isinstance(data, list)
+
+        self.elementList.clear()
+
+        for obj in data:
+            elementName = obj.get('elementName', None)
+            leftConnectorType = obj.get('leftConnectorType', None)
+            rightConnectorType = obj.get('rightConnectorType', None)
+
+            if elementName is not None and leftConnectorType is not None and rightConnectorType is not None:
+                newElem = MetaElement(leftConnectorType, rightConnectorType, elementName)
+                self.addElement(newElem)

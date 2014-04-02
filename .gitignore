@@ -16,6 +16,7 @@ sdist
 develop-eggs
 .idea
 .installed.cfg
+*.elms
 lib
 lib64
 __pycache__

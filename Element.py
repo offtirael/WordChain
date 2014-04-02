@@ -44,6 +44,7 @@ class MetaElement(QGraphicsItem):
 
         self.boundRect = self.formPath.boundingRect()
 
+
     def paint(self, painter, option, widget=None):
         painter.setPen(self.pen)
         painter.drawPath(self.formPath)
@@ -75,6 +76,26 @@ class MetaElement(QGraphicsItem):
 
         self.formPath.lineTo(self.leftBottom)
         self.formPath.addPath(self.leftConnector.connectorPath)
+
+    #def mouseMoveEvent(self, event):
+    #    self.setPos(event.scenePos())
+
+    #def mousePressEvent(self, event):
+    #    if event.button() != Qt.LeftButton:
+    #        event.ignore()
+    #        return
+
+    #    self.setCursor(Qt.ClosedHandCursor)
+
+    def getLeftCenter(self):
+        point = self.pos()
+        point.setX(point.x() - 100)
+        return point
+
+    def getRightCenter(self):
+        point = self.pos()
+        point.setX(point.x() + 100)
+        return point
 
 
 class ElementSet(object):

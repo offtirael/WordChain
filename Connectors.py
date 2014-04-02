@@ -15,6 +15,7 @@ class LeftConnector(Connector):
         super(LeftConnector, self).__init__()
 
         self.connectorPath = QPainterPath()
+        self.connectorCenter = QPoint()
 
         assert isinstance(bottom, QPoint)
         assert isinstance(top, QPoint)
@@ -23,22 +24,26 @@ class LeftConnector(Connector):
             if type == 1:
                 self.connectorPath.moveTo(bottom)
                 self.connectorPath.lineTo(top)
+                self.connectorCenter = QPoint(-10000, -10000)
             elif type == 2:
                 self.connectorPath.moveTo(bottom)
                 newPoint = QPoint(bottom.x() - 20, abs(bottom.y() + top.y())/2)
                 self.connectorPath.lineTo(newPoint)
                 self.connectorPath.lineTo(top)
+                self.connectorCenter = newPoint
             elif type == 3:
                 self.connectorPath.moveTo(bottom)
                 newPoint = QPoint(bottom.x() + 20, abs(bottom.y() + top.y())/2)
                 self.connectorPath.lineTo(newPoint)
                 self.connectorPath.lineTo(top)
+                self.connectorCenter = newPoint
 
 class RightConnector(Connector):
     def __init__(self, type, bottom, top):
         super(RightConnector, self).__init__()
 
         self.connectorPath = QPainterPath()
+        self.connectorCenter = QPoint()
 
         assert isinstance(bottom, QPoint)
         assert isinstance(top, QPoint)
@@ -47,13 +52,16 @@ class RightConnector(Connector):
             if type == 1:
                 self.connectorPath.moveTo(top)
                 self.connectorPath.lineTo(bottom)
+                self.connectorCenter = QPoint(-10000, -10000)
             elif type == 2:
                 self.connectorPath.moveTo(top)
                 newPoint = QPoint(bottom.x() + 20, abs(bottom.y() + top.y())/2)
                 self.connectorPath.lineTo(newPoint)
                 self.connectorPath.lineTo(bottom)
+                self.connectorCenter = newPoint
             elif type == 3:
                 self.connectorPath.moveTo(top)
                 newPoint = QPoint(bottom.x() - 20, abs(bottom.y() + top.y())/2)
                 self.connectorPath.lineTo(newPoint)
                 self.connectorPath.lineTo(bottom)
+                self.connectorCenter = newPoint

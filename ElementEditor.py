@@ -5,6 +5,7 @@ import json
 from Element import *
 from Connectors import *
 
+import resources
 
 class ElementEditorWindow(QMainWindow):
     def __init__(self, editor, parent=None):
@@ -13,18 +14,18 @@ class ElementEditorWindow(QMainWindow):
         self.editor = editor
 
         # Menu options
-        self.fileMenu = QMenu("&File", self)
-        self.openAction = self.fileMenu.addAction("&Open...")
-        self.openAction.setShortcut("Ctrl+O")
-        self.saveAsAction = self.fileMenu.addAction("Save As...")
-        self.saveAction = self.fileMenu.addAction("&Save")
-        self.saveAction.setShortcut("Ctrl+S")
+        #self.fileMenu = QMenu("&File", self)
+        #self.openAction = self.fileMenu.addAction("&Open...")
+        #self.openAction.setShortcut("Ctrl+O")
+        #self.saveAsAction = self.fileMenu.addAction("Save As...")
+        #self.saveAction = self.fileMenu.addAction("&Save")
+        #self.saveAction.setShortcut("Ctrl+S")
 
-        self.saveAsAction.triggered.connect(self.editor.saveAs)
-        self.saveAction.triggered.connect(self.editor.saveToFile)
-        self.openAction.triggered.connect(self.editor.loadFromFile)
+        #self.saveAsAction.triggered.connect(self.editor.saveAs)
+        #self.saveAction.triggered.connect(self.editor.saveToFile)
+        #self.openAction.triggered.connect(self.editor.loadFromFile)
 
-        self.menuBar().addMenu(self.fileMenu)
+        #self.menuBar().addMenu(self.fileMenu)
 
         # Frames
         self.gBox1 = QFrame()
@@ -60,6 +61,7 @@ class ElementEditorWindow(QMainWindow):
         self.applyButton.clicked.connect(self.editor.applyChanges)
 
         self.rightLayout = QVBoxLayout(self.gBox2)
+        self.rightLayout.setAlignment(Qt.AlignTop)
         self.rightLayout.addWidget(self.label1)
         self.rightLayout.addWidget(self.nameEdit)
         self.rightLayout.addWidget(self.label2)
@@ -91,16 +93,30 @@ class ElementEditorWindow(QMainWindow):
         self.deleteButton.clicked.connect(self.editor.deleteElement)
 
         # Layout
-        self.centralWidget = QSplitter()
-        self.centralWidget.addWidget(self.gBox1)
-        self.centralWidget.addWidget(self.graphicsView)
-        self.centralWidget.addWidget(self.gBox2)
+        self.centralWidget = QWidget()
+
+        self.centralLayout = QHBoxLayout()
+        self.centralLayout.addWidget(self.gBox1)
+        self.centralLayout.addWidget(self.graphicsView)
+        self.centralLayout.addWidget(self.gBox2)
+        self.centralWidget.setLayout(self.centralLayout)
 
         self.setCentralWidget(self.centralWidget)
 
         self.resize(1000, 600)
 
         self.setWindowTitle("WordChain : Element editor")
+
+        # ToolBars
+        self.fileToolBar = self.addToolBar("File")
+
+        self.saveAction = QAction(QIcon(':/images/save.png'), "Save to &File", self,
+                                  shortcut="Ctrl+S", triggered=self.editor.saveToFile)
+        self.openAction = QAction(QIcon(':/images/open.png'), "Open &File", self,
+                                  shortcut="Ctrl+O", triggered=self.editor.loadFromFile)
+
+        self.fileToolBar.addAction(self.saveAction)
+        self.fileToolBar.addAction(self.openAction)
 
     def closeEvent(self, event):
         if not self.editor.saved:
@@ -219,9 +235,7 @@ class ElementEditor(object):
         self.fileName = ret[0]
         file = open(self.fileName, 'r')
 
-        st = ''
-        for line in file:
-            st += line
+        st = '\n'.join(file.readlines())
 
         self.elementSet.fromString(st)
         file.close()

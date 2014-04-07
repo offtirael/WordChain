@@ -8,7 +8,7 @@ from Connectors import *
 
 class MetaElement(QGraphicsItem):
 
-    def __init__(self, leftConnectorType, rightConnectorType, elementName):
+    def __init__(self, leftConnectorType, rightConnectorType, elementName, color=QColor(255, 255, 255)):
         super(MetaElement, self).__init__()
 
         assert isinstance(leftConnectorType, int)
@@ -41,12 +41,14 @@ class MetaElement(QGraphicsItem):
 
         self.pen = QPen()
         self.pen.setWidth(2)
+        self.color = color
 
         self.boundRect = self.formPath.boundingRect()
 
 
     def paint(self, painter, option, widget=None):
         painter.setPen(self.pen)
+        painter.setBrush(self.color)
         painter.drawPath(self.formPath)
         painter.drawText(self.boundRect, Qt.AlignCenter, self.elementName)
 
@@ -67,25 +69,19 @@ class MetaElement(QGraphicsItem):
             self.rightConnectorType = connType
             self.setDrawPath()
 
+    def changeColor(self, color):
+        assert isinstance(color, QColor)
+        self.color = color
+
     def setDrawPath(self):
         self.formPath = QPainterPath()
         self.formPath.moveTo(self.leftTop)
 
         self.formPath.lineTo(self.rightTop)
-        self.formPath.addPath(self.rightConnector.connectorPath)
+        self.formPath.connectPath(self.rightConnector.connectorPath)
 
         self.formPath.lineTo(self.leftBottom)
-        self.formPath.addPath(self.leftConnector.connectorPath)
-
-    #def mouseMoveEvent(self, event):
-    #    self.setPos(event.scenePos())
-
-    #def mousePressEvent(self, event):
-    #    if event.button() != Qt.LeftButton:
-    #        event.ignore()
-    #        return
-
-    #    self.setCursor(Qt.ClosedHandCursor)
+        self.formPath.connectPath(self.leftConnector.connectorPath)
 
     def getLeftCenter(self):
         point = self.pos()
@@ -96,6 +92,16 @@ class MetaElement(QGraphicsItem):
         point = self.pos()
         point.setX(point.x() + 100)
         return point
+
+    def image(self):
+        pixmap = QPixmap(250, 250)
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setPen(QPen(Qt.black, 8))
+        painter.setBrush(self.color)
+        painter.translate(125, 125)
+        painter.drawPath(self.formPath)
+        return pixmap
 
 
 class ElementSet(object):
@@ -116,7 +122,7 @@ class ElementSet(object):
         lst = []
         for elem in self.elementList:
             obj = {'elementName': elem.elementName, 'leftConnectorType': elem.leftConnectorType,
-                   'rightConnectorType': elem.rightConnectorType}
+                   'rightConnectorType': elem.rightConnectorType, 'color': elem.color.name()}
             lst.append(obj)
         return lst
 
@@ -141,7 +147,9 @@ class ElementSet(object):
             elementName = obj.get('elementName', None)
             leftConnectorType = obj.get('leftConnectorType', None)
             rightConnectorType = obj.get('rightConnectorType', None)
+            color = obj.get('color', None)
 
-            if elementName is not None and leftConnectorType is not None and rightConnectorType is not None:
-                newElem = MetaElement(leftConnectorType, rightConnectorType, elementName)
+            if elementName is not None and leftConnectorType is not None and rightConnectorType is not None and\
+                            color is not None:
+                newElem = MetaElement(leftConnectorType, rightConnectorType, elementName, QColor(color))
                 self.addElement(newElem)

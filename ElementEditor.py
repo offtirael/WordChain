@@ -7,6 +7,7 @@ from Connectors import *
 
 import resources
 
+
 class ElementEditorWindow(QMainWindow):
     def __init__(self, editor, parent=None):
         super(ElementEditorWindow, self).__init__(parent)
@@ -29,46 +30,18 @@ class ElementEditorWindow(QMainWindow):
 
         # Frames
         self.gBox1 = QFrame()
-        self.gBox1.setMaximumSize(QSize(200, 600))
+        self.gBox1.setMinimumSize(QSize(200, 600))
         self.gBox2 = QFrame()
-        self.gBox2.setMaximumSize(QSize(200, 200))
+        self.gBox2.setMinimumSize(QSize(200, 600))
 
         self.scene = QGraphicsScene(-200, -200, 400, 400)
 
         # Graphics view
         self.graphicsView = QGraphicsView(self.scene)
-        self.graphicsView.setMinimumSize(QSize(600, 600))
+        self.graphicsView.setMinimumSize(QSize(700, 600))
 
         # Right menu
-        self.label1 = QLabel("Element name")
-        self.nameEdit = QLineEdit()
-
-        self.label2 = QLabel("Left connector")
-        self.leftConnectorCombo = QComboBox()
-        self.leftConnectorCombo.addItem("Type 1")
-        self.leftConnectorCombo.addItem("Type 2")
-        self.leftConnectorCombo.addItem("Type 3")
-        self.leftConnectorCombo.currentIndexChanged.connect(self.editor.changeLeftConnector)
-
-        self.label3 = QLabel("Right connector")
-        self.rightConnectorCombo = QComboBox()
-        self.rightConnectorCombo.addItem("Type 1")
-        self.rightConnectorCombo.addItem("Type 2")
-        self.rightConnectorCombo.addItem("Type 3")
-        self.rightConnectorCombo.currentIndexChanged.connect(self.editor.changeRightConnector)
-
-        self.applyButton = QPushButton("Apply")
-        self.applyButton.clicked.connect(self.editor.applyChanges)
-
-        self.rightLayout = QVBoxLayout(self.gBox2)
-        self.rightLayout.setAlignment(Qt.AlignTop)
-        self.rightLayout.addWidget(self.label1)
-        self.rightLayout.addWidget(self.nameEdit)
-        self.rightLayout.addWidget(self.label2)
-        self.rightLayout.addWidget(self.leftConnectorCombo)
-        self.rightLayout.addWidget(self.label3)
-        self.rightLayout.addWidget(self.rightConnectorCombo)
-        self.rightLayout.addWidget(self.applyButton)
+        self.createRightMenu()
 
         # Left menu
         self.itemListWidget = QListWidget()
@@ -92,18 +65,24 @@ class ElementEditorWindow(QMainWindow):
         self.leftLayout.addWidget(self.deleteButton)
         self.deleteButton.clicked.connect(self.editor.deleteElement)
 
+        #Toolbox
+        self.createToolBox()
+        #self.layoutToolBox()
+        self.loadToolBox()
+
         # Layout
         self.centralWidget = QWidget()
 
         self.centralLayout = QHBoxLayout()
-        self.centralLayout.addWidget(self.gBox1)
+        self.centralLayout.addWidget(self.toolBox)
         self.centralLayout.addWidget(self.graphicsView)
         self.centralLayout.addWidget(self.gBox2)
         self.centralWidget.setLayout(self.centralLayout)
 
         self.setCentralWidget(self.centralWidget)
 
-        self.resize(1000, 600)
+        #self.setMinimumSize(1100, 700)
+        self.resize(1200, 700)
 
         self.setWindowTitle("WordChain : Element editor")
 
@@ -117,6 +96,108 @@ class ElementEditorWindow(QMainWindow):
 
         self.fileToolBar.addAction(self.saveAction)
         self.fileToolBar.addAction(self.openAction)
+
+    def createRightMenu(self):
+        # Name edit
+        self.label1 = QLabel("Element name")
+        self.nameEdit = QLineEdit()
+
+        # Choosing left connector type
+        self.label2 = QLabel("Left connector")
+        self.leftConnectorCombo = QComboBox()
+        self.leftConnectorCombo.addItem("Type 1")
+        self.leftConnectorCombo.addItem("Type 2")
+        self.leftConnectorCombo.addItem("Type 3")
+        self.leftConnectorCombo.currentIndexChanged.connect(self.editor.changeLeftConnector)
+
+        # Choosing right connector type
+        self.label3 = QLabel("Right connector")
+        self.rightConnectorCombo = QComboBox()
+        self.rightConnectorCombo.addItem("Type 1")
+        self.rightConnectorCombo.addItem("Type 2")
+        self.rightConnectorCombo.addItem("Type 3")
+        self.rightConnectorCombo.currentIndexChanged.connect(self.editor.changeRightConnector)
+
+        # Choosing color
+        self.label4 = QLabel("Color")
+        self.colorWidget = QWidget()
+        self.colorLayout = QHBoxLayout()
+        self.colorName = QLineEdit()
+        self.colorName.setReadOnly(True)
+        self.colorChoose = QPushButton("Choose")
+        self.colorChoose.clicked.connect(self.editor.chooseColor)
+        self.colorLayout.addWidget(self.colorName)
+        self.colorLayout.addWidget(self.colorChoose)
+        self.colorWidget.setLayout(self.colorLayout)
+
+        # Applying changes
+        self.applyButton = QPushButton("Apply")
+        self.applyButton.clicked.connect(self.editor.applyChanges)
+
+        # Layout
+        self.rightLayout = QVBoxLayout(self.gBox2)
+        self.rightLayout.setAlignment(Qt.AlignTop)
+        self.rightLayout.addWidget(self.label1)
+        self.rightLayout.addWidget(self.nameEdit)
+        self.rightLayout.addWidget(self.label2)
+        self.rightLayout.addWidget(self.leftConnectorCombo)
+        self.rightLayout.addWidget(self.label3)
+        self.rightLayout.addWidget(self.rightConnectorCombo)
+        self.rightLayout.addWidget(self.label4)
+        self.rightLayout.addWidget(self.colorWidget)
+        self.rightLayout.addWidget(self.applyButton)
+
+    def createToolBox(self):
+        self.toolBox = QToolBox()
+        self.toolBox.setMinimumSize(QSize(250, 600))
+        self.buttonGroup = QButtonGroup()
+        self.buttonGroup.setExclusive(True)
+        self.buttonGroup.buttonClicked[int].connect(self.buttonGroupClicked)
+
+        self.toolBoxLayout = QGridLayout()
+        self.toolBoxLayout.setRowStretch(4, 10)
+        self.toolBoxLayout.setColumnStretch(2, 10)
+
+        self.toolBoxWidget = QWidget()
+        self.toolBoxWidget.setLayout(self.toolBoxLayout)
+        self.toolBox.addItem(self.toolBoxWidget, "Grammar elements")
+
+    def buttonGroupClicked(self, id):
+        print(id)
+        if id == len(self.editor.elementSet.elementList):
+            self.editor.addElement()
+        else:
+            self.editor.chooseElement(id)
+
+    def layoutToolBox(self):
+        self.clearToolBox()
+        self.loadToolBox()
+
+    def clearToolBox(self):
+        cnt = self.toolBoxLayout.count()
+
+        while cnt > 0:
+            itm = self.toolBoxLayout.itemAt(cnt-1)
+            if itm is not None:
+                wdg = itm.widget()
+                self.toolBoxLayout.removeWidget(wdg)
+                wdg.hide()
+                wdg.deleteLater()
+                cnt -= 1
+
+    def loadToolBox(self):
+        rowNum = 0
+        colNum = 0
+        num = 0
+        for elem in self.editor.elementSet.elementList:
+            self.toolBoxLayout.addWidget(self.createCellWidget(elem.elementName, elem.image(), num), rowNum, colNum)
+            colNum += 1
+            num += 1
+            if colNum > 1:
+                colNum = 0
+                rowNum += 1
+
+        self.toolBoxLayout.addWidget(self.createCellWidget("New element", ':images/plus.png', num), rowNum, colNum)
 
     def closeEvent(self, event):
         if not self.editor.saved:
@@ -135,6 +216,27 @@ class ElementEditorWindow(QMainWindow):
         else:
             event.accept()
 
+    count = 0
+
+    def createCellWidget(self, text, elementImage, num):
+        #assert isinstance(elementImage, QPi)
+
+        icon = QIcon(elementImage)
+        button = QToolButton()
+        button.setIcon(icon)
+        button.setIconSize(QSize(50, 50))
+        if not isinstance(elementImage, str):
+            button.setCheckable(True)
+        self.buttonGroup.addButton(button, num)
+
+        layout = QGridLayout()
+        layout.addWidget(button, 0, 0, Qt.AlignHCenter)
+        layout.addWidget(QLabel(text), 1, 0, Qt.AlignHCenter)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+        return widget
+
 
 class ElementEditor(object):
     def __init__(self):
@@ -148,21 +250,17 @@ class ElementEditor(object):
         self.window.show()
 
     def addElement(self):
-        name = self.window.newElementName.text()
-        self.window.newElementName.clear()
+        name, ok = QInputDialog.getText(None, "Create new element", "Enter new element name:")
+        if name is not None and ok:
+            element = MetaElement(2, 2, elementName=name)
+            self.elementSet.addElement(element)
 
-        element = MetaElement(2, 2, elementName=name)
-
-        self.elementSet.addElement(element)
-        #self.elementList.append(element)
-
-        self.updateElementListView()
+            self.window.layoutToolBox()
 
     def deleteElement(self):
         index = self.window.itemListWidget.currentRow()
         if index != -1:
             self.elementSet.removeElement(index)
-            #self.elementList.pop(index)
             self.updateElementListView()
 
     def updateElementListView(self):
@@ -171,9 +269,9 @@ class ElementEditor(object):
         for item in self.elementSet.elementList:
             self.window.itemListWidget.addItem(item.elementName)
 
-    def chooseElement(self):
+    def chooseElement(self, index):
         self.window.scene.removeItem(self.currentElement)
-        index = self.window.itemListWidget.currentRow()
+        #index = self.window.itemListWidget.currentRow()
         if index != -1:
             self.currentElement = self.elementSet.elementList[index]
             self.window.nameEdit.setText(self.currentElement.elementName)
@@ -181,11 +279,12 @@ class ElementEditor(object):
 
             self.window.leftConnectorCombo.setCurrentIndex(self.currentElement.leftConnectorType - 1)
             self.window.rightConnectorCombo.setCurrentIndex(self.currentElement.rightConnectorType - 1)
+            self.window.colorName.setText(self.currentElement.color.name())
 
     def applyChanges(self):
         newName = self.window.nameEdit.text()
         self.currentElement.elementName = newName
-        self.updateElementListView()
+        self.window.layoutToolBox()
         self.updateScene()
         self.saved = False
 
@@ -202,6 +301,7 @@ class ElementEditor(object):
         self.currentElement.changeLeftConnector(index)
 
         self.window.scene.addItem(self.currentElement)
+        self.window.layoutToolBox()
         self.saved = False
 
     def changeRightConnector(self):
@@ -212,7 +312,16 @@ class ElementEditor(object):
         self.currentElement.changeRightConnector(index)
 
         self.window.scene.addItem(self.currentElement)
+        self.window.layoutToolBox()
         self.saved = False
+
+    def chooseColor(self):
+        col = QColorDialog.getColor()
+        self.window.colorName.setText(col.name())
+        self.window.scene.removeItem(self.currentElement)
+        self.currentElement.changeColor(col)
+        self.window.scene.addItem(self.currentElement)
+        self.window.layoutToolBox()
 
     def saveToFile(self):
         if self.fileName is not None:
@@ -239,5 +348,6 @@ class ElementEditor(object):
 
         self.elementSet.fromString(st)
         file.close()
-        self.updateElementListView()
+        #self.updateElementListView()
+        self.window.layoutToolBox()
         self.saved = True

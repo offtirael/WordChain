@@ -2,5 +2,6 @@
 <qresource>
     <file>images/save.png</file>
     <file>images/open.png</file>
+    <file>images/plus.png</file>
 </qresource>
 </RCC>

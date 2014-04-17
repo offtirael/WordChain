@@ -14,20 +14,6 @@ class ElementEditorWindow(QMainWindow):
 
         self.editor = editor
 
-        # Menu options
-        #self.fileMenu = QMenu("&File", self)
-        #self.openAction = self.fileMenu.addAction("&Open...")
-        #self.openAction.setShortcut("Ctrl+O")
-        #self.saveAsAction = self.fileMenu.addAction("Save As...")
-        #self.saveAction = self.fileMenu.addAction("&Save")
-        #self.saveAction.setShortcut("Ctrl+S")
-
-        #self.saveAsAction.triggered.connect(self.editor.saveAs)
-        #self.saveAction.triggered.connect(self.editor.saveToFile)
-        #self.openAction.triggered.connect(self.editor.loadFromFile)
-
-        #self.menuBar().addMenu(self.fileMenu)
-
         # Frames
         self.gBox1 = QFrame()
         self.gBox1.setMinimumSize(QSize(200, 600))
@@ -81,7 +67,6 @@ class ElementEditorWindow(QMainWindow):
 
         self.setCentralWidget(self.centralWidget)
 
-        #self.setMinimumSize(1100, 700)
         self.resize(1200, 700)
 
         self.setWindowTitle("WordChain : Element editor")

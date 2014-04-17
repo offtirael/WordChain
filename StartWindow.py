@@ -2,7 +2,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
 from ElementEditor import ElementEditor
-from RuleEditor import RuleEditor
+from RuleEditor import RuleEditorNew
 from Practice import PracticeWindow
 
 
@@ -33,7 +33,7 @@ class StartWindow(QMainWindow):
 
         self.elementEditor = ElementEditor()
         #self.elementEditorWindow = ElementEditorWindow()
-        self.ruleEditor = RuleEditor()
+        self.ruleEditor = RuleEditorNew()
         self.practiceWindow = PracticeWindow()
 
     def startElementEditor(self):

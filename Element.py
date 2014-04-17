@@ -6,7 +6,7 @@ import json
 from Connectors import *
 
 
-class MetaElement(QGraphicsItem):
+class MetaElement(QGraphicsPolygonItem):
 
     def __init__(self, leftConnectorType, rightConnectorType, elementName, color=QColor(255, 255, 255)):
         super(MetaElement, self).__init__()
@@ -18,11 +18,11 @@ class MetaElement(QGraphicsItem):
         self.leftConnectorType = leftConnectorType
         self.rightConnectorType = rightConnectorType
 
-        self.leftBottom = QPoint(-100, 50)
-        self.leftTop = QPoint(-100, -50)
+        self.leftBottom = QPoint(-50, 25)
+        self.leftTop = QPoint(-50, -25)
 
-        self.rightBottom = QPoint(100, 50)
-        self.rightTop = QPoint(100, -50)
+        self.rightBottom = QPoint(50, 25)
+        self.rightTop = QPoint(50, -25)
 
         if leftConnectorType not in Connector.connectorTypes:
             self.leftConnector = LeftConnector(1, self.leftBottom, self.leftTop)
@@ -43,8 +43,14 @@ class MetaElement(QGraphicsItem):
         self.pen.setWidth(2)
         self.color = color
 
+        self.itemPolygon = self.formPath.toFillPolygon(QTransform())
+        self.setPolygon(self.itemPolygon)
+
         self.boundRect = self.formPath.boundingRect()
 
+        self.connections = []
+        self.setFlag(QGraphicsItem.ItemIsSelectable, True)
+        self.setFlag(QGraphicsItem.ItemIsMovable, True)
 
     def paint(self, painter, option, widget=None):
         painter.setPen(self.pen)
@@ -85,12 +91,26 @@ class MetaElement(QGraphicsItem):
 
     def getLeftCenter(self):
         point = self.pos()
-        point.setX(point.x() - 100)
+        delta = 0
+        if self.leftConnectorType == 1:
+            delta = 0
+        elif self.leftConnectorType == 2:
+            delta = -20
+        elif self.leftConnectorType == 3:
+            delta = 20
+        point.setX(point.x() - 50 + delta)
         return point
 
     def getRightCenter(self):
         point = self.pos()
-        point.setX(point.x() + 100)
+        delta = 0
+        if self.rightConnectorType == 1:
+            delta = 0
+        elif self.rightConnectorType == 2:
+            delta = 20
+        elif self.rightConnectorType == 3:
+            delta = -20
+        point.setX(point.x() + 50 + delta)
         return point
 
     def image(self):
@@ -102,6 +122,13 @@ class MetaElement(QGraphicsItem):
         painter.translate(125, 125)
         painter.drawPath(self.formPath)
         return pixmap
+
+    def itemChange(self, change, value):
+        if change == QGraphicsItem.ItemPositionChange:
+            for conn in self.connections:
+                conn.updatePosition()
+
+        return value
 
 
 class ElementSet(object):

@@ -94,10 +94,21 @@ class ChainScene(QGraphicsScene):
 
                 startItem = startItems[0]
                 endItem = endItems[0]
-                self.addConnection(startItem, endItem)
+                if startItem.pos().x() < endItem.pos().x():
+                    self.addConnection(startItem, endItem)
+                else:
+                    self.addConnection(endItem, startItem)
 
         self.removeItem(self.line)
+        self.testRule()
         super(ChainScene, self).mouseReleaseEvent(event)
+
+    ###########################################################################
+    def testRule(self):
+        for itm in self.items():
+            if isinstance(itm, MetaElement):
+                if len(itm.connections) % 2 == 0:
+                    print("Error")
 
     ###########################################################################
     def isItemChange(self, type):
@@ -228,6 +239,14 @@ class RuleEditorNew(QMainWindow):
 
         self.pointerToolbar.addWidget(pointerButton)
         self.pointerToolbar.addWidget(lineButton)
+
+        self.testToolbar = self.addToolBar("Model testing")
+        #self.testGroup = QButtonGroup()
+        testButton = QPushButton()
+        testButton.setIcon(QIcon(":/images/play.png"))
+        testButton.setText("Test rule")
+        #self.testGroup.addButton(testButton)
+        self.testToolbar.addWidget(testButton)
 
     ###########################################################################
     def createToolBox(self):

@@ -48,7 +48,8 @@ class MetaElement(QGraphicsPolygonItem):
 
         self.boundRect = self.formPath.boundingRect()
 
-        self.connections = []
+        self.outConnections = []
+        self.inConnections = []
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
 

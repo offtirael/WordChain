@@ -36,10 +36,22 @@ class ChainScene(QGraphicsScene):
         self.itemType = itype
 
     ###########################################################################
+    """
+    Set active scene mode.
+
+    Keyword arguments:
+    mode -- new scene mode
+    """
     def setMode(self, mode):
         self.mode = mode
 
     ###########################################################################
+    """
+    Handler for mouse move events.
+
+    Keyword arguments:
+    event -- mouse event
+    """
     def mouseMoveEvent(self, event):
         if self.mode == ChainScene.InsertLine and self.line:
             newLine = QLineF(self.line.line().p1(),
@@ -49,6 +61,12 @@ class ChainScene(QGraphicsScene):
             super(ChainScene, self).mouseMoveEvent(event)
 
     ###########################################################################
+    """
+    Handler for mouse press events.
+
+    Keyword arguments:
+    event -- mouse event
+    """
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             if self.mode == ChainScene.InsertItem:
@@ -75,6 +93,12 @@ class ChainScene(QGraphicsScene):
         super(ChainScene, self).mousePressEvent(event)
 
     ###########################################################################
+    """
+    Handler for mouse release events.
+
+    Keyword arguments:
+    event -- mouse event
+    """
     def mouseReleaseEvent(self, event):
         if self.line and self.mode == ChainScene.InsertLine:
             startItems = self.items(self.line.line().p1())
@@ -94,13 +118,9 @@ class ChainScene(QGraphicsScene):
 
                 startItem = startItems[0]
                 endItem = endItems[0]
-                if startItem.pos().x() < endItem.pos().x():
-                    self.addConnection(startItem, endItem)
-                else:
-                    self.addConnection(endItem, startItem)
+                self.addConnection(startItem, endItem)
 
         self.removeItem(self.line)
-        self.testRule()
         super(ChainScene, self).mouseReleaseEvent(event)
 
     ###########################################################################
@@ -118,6 +138,13 @@ class ChainScene(QGraphicsScene):
         return False
 
     ###########################################################################
+    """
+    Connectivity test for two elements.
+
+    Keyword arguments:
+    leftType -- left element connector type
+    rightType -- right element connector type
+    """
     @staticmethod
     def connecting(leftType, rightType):
         if leftType == 1 or rightType == 1:
@@ -130,6 +157,13 @@ class ChainScene(QGraphicsScene):
             return False
 
     ###########################################################################
+    """
+    Compute distance between two points.
+
+    Keyword arguments:
+    qp1 -- first point, QPoint
+    qp2 -- second point, QPoint
+    """
     @staticmethod
     def length(qp1, qp2):
         dx = pow(qp1.x() - qp2.x(), 2)
@@ -137,10 +171,26 @@ class ChainScene(QGraphicsScene):
         return sqrt(dx + dy)
 
     ###########################################################################
+    """
+    Create connection between two elements.
+
+    Keyword arguments:
+    el1 -- start element, MetaElement
+    el2 -- end element, MetaElement
+    """
     def addConnection(self, el1, el2):
-        conn = Connection(el1, el2)
-        el1.connections.append(conn)
-        el2.connections.append(conn)
+        if el1.pos().x() < el2.pos().x():
+            conn = Connection(el1, el2)
+            el1.outConnections.append(conn)
+            el2.inConnections.append(conn)
+        else:
+            conn = Connection(el2, el1)
+            el1.inConnections.append(conn)
+            el2.outConnections.append(conn)
+
+        #conn = Connection(el1, el2)
+        #el1.connections.append(conn)
+        #el2.connections.append(conn)
         self.connections.append(conn)
         self.addItem(conn)
 
@@ -160,6 +210,7 @@ class RuleEditorNew(QMainWindow):
         self.sceneElementList = []
         self.connections = []
         self.elementSet = ElementSet()
+        self.rule = Rule()
 
         # Frames
         self.gBox1 = QFrame()
@@ -196,7 +247,6 @@ class RuleEditorNew(QMainWindow):
 
         self.chooseFile.clicked.connect(self.chooseElementsFile)
         self.loadFile.clicked.connect(self.loadElementsFile)
-        self.elemListWidget.itemDoubleClicked.connect(self.addElementToScene)
 
         # Layout
         self.centralWidget = QWidget()
@@ -245,6 +295,7 @@ class RuleEditorNew(QMainWindow):
         testButton = QPushButton()
         testButton.setIcon(QIcon(":/images/play.png"))
         testButton.setText("Test rule")
+        testButton.clicked.connect(self.testRule)
         #self.testGroup.addButton(testButton)
         self.testToolbar.addWidget(testButton)
 
@@ -376,15 +427,10 @@ class RuleEditorNew(QMainWindow):
             self.elemListWidget.addItem(item.elementName)
 
     ###########################################################################
-    def addElementToScene(self, index):
-        #el = self.elementSet.elementList[index]
-        #newElement = MetaElement(el.leftConnectorType, el.rightConnectorType, el.elementName, el.color)
-        #self.sceneElementList.append(newElement)
-        pass
-        #self.scene.addItem(newElement)
-
-    ###########################################################################
-
+    def testRule(self):
+        self.rule.fromElementList(self.scene.items())
+        print(self.rule.firstElement.elementName)
+        print(self.rule.endingElement.elementName)
 
 
 ###############################################################################
@@ -427,76 +473,23 @@ class Connection(QGraphicsLineItem):
 ################################################################################################
 
 
-class Rule(QGraphicsItem):
-
-    ###########################################################################
-    def __init__(self, elem):
-        super(Rule, self).__init__()
+class Rule(object):
+    def __init__(self):
         self.elements = []
-        self.formPath = QPainterPath()
+        self.connections = []
+        self.firstElement = None
+        self.endingElement = None
 
-        self.pen = QPen()
-        self.pen.setWidth(2)
+    def fromElementList(self, lst):
+        for elem in lst:
+            if isinstance(elem, MetaElement):
+                self.elements.append(elem)
+                if len(elem.inConnections) == 0:
+                    self.firstElement = elem
+                elif len(elem.outConnections) == 0:
+                    self.endingElement = elem
+            elif isinstance(elem, Connection):
+                self.connections.append(elem)
 
-        self.elements.append(elem)
-
-    ###########################################################################
-    def addElementLeft(self, element):
-        self.elements.insert(0, element)
-        self.setPath()
-
-    ###########################################################################
-    def setPath(self):
-        self.formPath.moveTo(QPoint(-100, -50))
-
-        rightTop = QPoint(-100 + (200 * len(self.elements)), -50)
-        rightBottom = QPoint(rightTop.x(), 50)
-
-        self.formPath.lineTo(rightTop)
-
-        endConnector = RightConnector(self.elements[-1].rightConnectorType, rightBottom, rightTop)
-
-        self.formPath.addPath(endConnector.connectorPath)
-
-        self.formPath.lineTo(QPoint(-100, 50))
-        self.formPath.addPath(self.elements[0].leftConnector.connectorPath)
-
-        deltaY = 200
-        for elem in self.elements:
-            bot = QPoint(-100 + deltaY, 50)
-            top = QPoint(-100 + deltaY, -50)
-            endConnector = RightConnector(elem.rightConnectorType, bot, top)
-            self.formPath.addPath(endConnector.connectorPath)
-            deltaY += 200
-
-    ###########################################################################
-    def addElementRight(self, element):
-        self.elements.append(element)
-        self.setPath()
-
-    ###########################################################################
-    def paint(self, painter, option, widget=None):
-        painter.setPen(self.pen)
-        painter.drawPath(self.formPath)
-        for elem in self.elements:
-            painter.drawText(elem.boundingRect(), Qt.AlignCenter, elem.elementName)
-
-    ###########################################################################
-    def boundingRect(self):
-        return self.formPath.boundingRect()
-
-    ###########################################################################
-    def addPathRight(self, path):
-        assert isinstance(path, QPainterPath)
-        self.formPath.moveTo(self.boundingRect().topRight())
-        self.formPath.addPath(path)
-
-    ###########################################################################
-    def addPathLeft(self, path):
-        assert isinstance(path, QPainterPath)
-        self.formPath.moveTo(self.boundingRect().topLeft())
-        self.formPath.addPath(path)
-
-    ###########################################################################
-    def dispose(self):
-        pass
+    def check(self):
+        return False

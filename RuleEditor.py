@@ -21,10 +21,15 @@ class ChainScene(QGraphicsScene):
 
         self.mode = ChainScene.InsertItem
         self.itemType = -1
-        self.contextMenu = QMenu()
-        self.action1 = self.contextMenu.addAction("Action 1")
         self.toInsert = None
-        self.connections = []
+        self.line = None
+
+        self.contextMenu1 = QMenu()
+        self.contextMenu1.addAction(QAction("Delete", self, triggered=self.deleteItem))
+
+        self.contextMenu2 = QMenu()
+        self.contextMenu2.addAction(QAction("Delete", self, triggered=self.deleteItem))
+        self.contextMenu2.addAction(QAction("Properties", self, triggered=self.itemProperties))
 
     ###########################################################################
     def setToInert(self, item):
@@ -36,23 +41,23 @@ class ChainScene(QGraphicsScene):
         self.itemType = itype
 
     ###########################################################################
-    """
-    Set active scene mode.
-
-    Keyword arguments:
-    mode -- new scene mode
-    """
     def setMode(self, mode):
+        """
+        Set active scene mode.
+
+        Keyword arguments:
+        mode -- new scene mode
+        """
         self.mode = mode
 
     ###########################################################################
-    """
-    Handler for mouse move events.
-
-    Keyword arguments:
-    event -- mouse event
-    """
     def mouseMoveEvent(self, event):
+        """
+        Handler for mouse move events.
+
+        Keyword arguments:
+        event -- mouse event
+        """
         if self.mode == ChainScene.InsertLine and self.line:
             newLine = QLineF(self.line.line().p1(),
                              event.scenePos())
@@ -61,13 +66,14 @@ class ChainScene(QGraphicsScene):
             super(ChainScene, self).mouseMoveEvent(event)
 
     ###########################################################################
-    """
-    Handler for mouse press events.
-
-    Keyword arguments:
-    event -- mouse event
-    """
     def mousePressEvent(self, event):
+        """
+        Handler for mouse press events.
+
+        Keyword arguments:
+        event -- mouse event
+        """
+        super(ChainScene, self).mousePressEvent(event)
         if event.button() == Qt.LeftButton:
             if self.mode == ChainScene.InsertItem:
                 item = MetaElement(self.toInsert.leftConnectorType,
@@ -84,22 +90,35 @@ class ChainScene(QGraphicsScene):
                 self.addItem(self.line)
             elif self.mode == ChainScene.MoveItem:
                 if self.focusItem() is None:
-                    print("test")
                     self.clearSelection()
                     self.clearFocus()
         elif event.button() == Qt.RightButton:
-            pass
+            #for item in self.items():
+            #    if item.contains(event.pos()):
+            #        if isinstance(item, MetaElement):
+            #            print("El")
+            #            self.contextMenu1.exec(QCursor.pos())
+            #        elif isinstance(item, Connection):
+            #            print("Line")
+            #            self.contextMenu2.exec(QCursor.pos())
 
-        super(ChainScene, self).mousePressEvent(event)
+            if len(self.selectedItems()) > 0:
+                if isinstance(self.selectedItems()[0], MetaElement):
+                    self.contextMenu1.exec(QCursor.pos())
+                elif isinstance(self.selectedItems()[0], Connection):
+                    self.contextMenu2.exec(QCursor.pos())
+
+        #super(ChainScene, self).mousePressEvent(event)
 
     ###########################################################################
-    """
-    Handler for mouse release events.
 
-    Keyword arguments:
-    event -- mouse event
-    """
     def mouseReleaseEvent(self, event):
+        """
+        Handler for mouse release events.
+
+        Keyword arguments:
+        event -- mouse event
+        """
         if self.line and self.mode == ChainScene.InsertLine:
             startItems = self.items(self.line.line().p1())
             if len(startItems) and startItems[0] == self.line:
@@ -119,16 +138,14 @@ class ChainScene(QGraphicsScene):
                 startItem = startItems[0]
                 endItem = endItems[0]
                 self.addConnection(startItem, endItem)
-
-        self.removeItem(self.line)
+        if self.line:
+            self.removeItem(self.line)
+        self.clearSelection()
         super(ChainScene, self).mouseReleaseEvent(event)
 
     ###########################################################################
     def testRule(self):
-        for itm in self.items():
-            if isinstance(itm, MetaElement):
-                if len(itm.connections) % 2 == 0:
-                    print("Error")
+        pass
 
     ###########################################################################
     def isItemChange(self, type):
@@ -138,15 +155,15 @@ class ChainScene(QGraphicsScene):
         return False
 
     ###########################################################################
-    """
-    Connectivity test for two elements.
-
-    Keyword arguments:
-    leftType -- left element connector type
-    rightType -- right element connector type
-    """
     @staticmethod
     def connecting(leftType, rightType):
+        """
+        Connectivity test for two elements.
+
+        Keyword arguments:
+        leftType -- left element connector type
+        rightType -- right element connector type
+        """
         if leftType == 1 or rightType == 1:
             return False
         elif leftType == 2 and rightType == 3:
@@ -157,28 +174,28 @@ class ChainScene(QGraphicsScene):
             return False
 
     ###########################################################################
-    """
-    Compute distance between two points.
-
-    Keyword arguments:
-    qp1 -- first point, QPoint
-    qp2 -- second point, QPoint
-    """
     @staticmethod
     def length(qp1, qp2):
+        """
+        Compute distance between two points.
+
+        Keyword arguments:
+        qp1 -- first point, QPoint
+        qp2 -- second point, QPoint
+        """
         dx = pow(qp1.x() - qp2.x(), 2)
         dy = pow(qp1.y() - qp2.y(), 2)
         return sqrt(dx + dy)
 
     ###########################################################################
-    """
-    Create connection between two elements.
-
-    Keyword arguments:
-    el1 -- start element, MetaElement
-    el2 -- end element, MetaElement
-    """
     def addConnection(self, el1, el2):
+        """
+        Create connection between two elements.
+
+        Keyword arguments:
+        el1 -- start element, MetaElement
+        el2 -- end element, MetaElement
+        """
         if el1.pos().x() < el2.pos().x():
             conn = Connection(el1, el2)
             el1.outConnections.append(conn)
@@ -188,11 +205,26 @@ class ChainScene(QGraphicsScene):
             el1.inConnections.append(conn)
             el2.outConnections.append(conn)
 
-        #conn = Connection(el1, el2)
-        #el1.connections.append(conn)
-        #el2.connections.append(conn)
-        self.connections.append(conn)
         self.addItem(conn)
+
+    ###########################################################################
+    def deleteItem(self):
+        itm = self.selectedItems()[0]
+        if itm:
+            if isinstance(itm, Connection):
+                itm.endElement.inConnections.remove(itm)
+                itm.startElement.outConnections.remove(itm)
+                self.removeItem(itm)
+            elif isinstance(itm, MetaElement):
+                for c in itm.inConnections:
+                    self.removeItem(c)
+                for c in itm.outConnections:
+                    self.removeItem(c)
+                self.removeItem(itm)
+
+    ###########################################################################
+    def itemProperties(self):
+        pass
 
 
 ###############################################################################
@@ -446,7 +478,7 @@ class Connection(QGraphicsLineItem):
         self.startElement = start
         self.endElement = end
         self.color = QColor(0, 0, 0)
-        self.setPen(QPen(self.color, 2, Qt.SolidLine, Qt.RoundCap,
+        self.setPen(QPen(self.color, 4, Qt.SolidLine, Qt.RoundCap,
                          Qt.RoundJoin))
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
 
@@ -468,6 +500,15 @@ class Connection(QGraphicsLineItem):
         line = QLineF(self.startElement.getRightCenter(), self.endElement.getLeftCenter())
         self.setLine(line)
 
+    ###########################################################################
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.scene().clearSelection()
+            self.setSelected(True)
+            super(Connection, self).mousePressEvent(event)
+        elif event.button() == Qt.RightButton:
+            self.scene().clearSelection()
+            self.setSelected(True)
 
 ################################################################################################
 ################################################################################################
@@ -490,6 +531,15 @@ class Rule(object):
                     self.endingElement = elem
             elif isinstance(elem, Connection):
                 self.connections.append(elem)
+
+    def toJSON(self):
+        jsn = {}
+        jsn['elements'] = self.elements
+        jsn['connections'] = self.connections
+        return jsn
+
+    def toString(self):
+        pass
 
     def check(self):
         return False

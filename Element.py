@@ -58,6 +58,13 @@ class MetaElement(QGraphicsPolygonItem):
         painter.setBrush(self.color)
         painter.drawPath(self.formPath)
         painter.drawText(self.boundRect, Qt.AlignCenter, self.elementName)
+        #if self.isSelected():
+        #    painter.setPen(QPen(Qt.black, 1, Qt.DashLine))
+        #    painter.drawRect(self.boundingRect())
+
+    def contextMenuEvent(self, event):
+        self.scene().clearSelection()
+        self.setSelected(True)
 
     def boundingRect(self):
         return self.boundRect
@@ -130,6 +137,15 @@ class MetaElement(QGraphicsPolygonItem):
                 conn.updatePosition()
 
         return value
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.scene().clearSelection()
+            self.setSelected(True)
+            super(MetaElement, self).mousePressEvent(event)
+        elif event.button() == Qt.RightButton:
+            self.scene().clearSelection()
+            self.setSelected(True)
 
 
 class ElementSet(object):

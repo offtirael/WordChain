@@ -3,7 +3,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import QTransform, QCursor, QPainterPath, QPen, QIcon, QColor
 from PyQt5.QtWidgets import *
 
-import os
+import os, json
+import pickle
 from Connectors import RightConnector
 
 from Element import ElementSet, MetaElement
@@ -30,6 +31,7 @@ class ChainScene(QGraphicsScene):
         self.contextMenu2 = QMenu()
         self.contextMenu2.addAction(QAction("Delete", self, triggered=self.deleteItem))
         self.contextMenu2.addAction(QAction("Properties", self, triggered=self.itemProperties))
+        self.setItemIndexMethod(QGraphicsScene.NoIndex)
 
     ###########################################################################
     def setToInert(self, item):
@@ -93,22 +95,13 @@ class ChainScene(QGraphicsScene):
                     self.clearSelection()
                     self.clearFocus()
         elif event.button() == Qt.RightButton:
-            #for item in self.items():
-            #    if item.contains(event.pos()):
-            #        if isinstance(item, MetaElement):
-            #            print("El")
-            #            self.contextMenu1.exec(QCursor.pos())
-            #        elif isinstance(item, Connection):
-            #            print("Line")
-            #            self.contextMenu2.exec(QCursor.pos())
-
             if len(self.selectedItems()) > 0:
                 if isinstance(self.selectedItems()[0], MetaElement):
                     self.contextMenu1.exec(QCursor.pos())
                 elif isinstance(self.selectedItems()[0], Connection):
                     self.contextMenu2.exec(QCursor.pos())
 
-        #super(ChainScene, self).mousePressEvent(event)
+                    #super(ChainScene, self).mousePressEvent(event)
 
     ###########################################################################
 
@@ -131,10 +124,9 @@ class ChainScene(QGraphicsScene):
             self.line = None
 
             if len(startItems) and len(endItems) and \
-                isinstance(startItems[0], MetaElement) and \
-                isinstance(endItems[0], MetaElement) and \
-                startItems[0] != endItems[0]:
-
+                    isinstance(startItems[0], MetaElement) and \
+                    isinstance(endItems[0], MetaElement) and \
+                            startItems[0] != endItems[0]:
                 startItem = startItems[0]
                 endItem = endItems[0]
                 self.addConnection(startItem, endItem)
@@ -232,7 +224,6 @@ class ChainScene(QGraphicsScene):
 
 
 class RuleEditorNew(QMainWindow):
-
     ###########################################################################
     def __init__(self, parent=None):
         super(RuleEditorNew, self).__init__(parent)
@@ -365,7 +356,7 @@ class RuleEditorNew(QMainWindow):
     def itemInserted(self, item):
         self.pointerTypeGroup.button(ChainScene.MoveItem).setChecked(True)
         self.scene.setMode(self.pointerTypeGroup.checkedId())
-        print('ins')
+
         buttons = self.buttonGroup.buttons()
         for button in buttons:
             button.setChecked(False)
@@ -423,12 +414,59 @@ class RuleEditorNew(QMainWindow):
         return widget
 
     ###########################################################################
-    def loadFromFile(self):
-        pass
+    def saveToFile(self):
+        self.rule.fromElementList(self.scene.items())
+        if self.currentRuleFile is not None:
+            saveFile = QSaveFile(self.currentRuleFile)
+            saveFile.open(QIODevice.WriteOnly)
+            data = self.rule.toBytes()
+            saveFile.writeData(data)
+            saveFile.commit()
+        else:
+            self.saveAs()
+        self.setWindowTitle("WordChain : Rule editor : " + self.currentRuleFile)
 
     ###########################################################################
-    def saveToFile(self):
-        pass
+    def saveAs(self):
+        ret = QFileDialog.getSaveFileName(filter='*.rl')
+        self.currentRuleFile = ret[0]
+        self.saveToFile()
+        self.setWindowTitle("WordChain : Rule editor : " + self.currentRuleFile)
+
+    ###########################################################################
+    def loadFromFile(self):
+        ret = QFileDialog.getOpenFileName(filter='*.rl')
+        self.currentRuleFile = ret[0]
+        file = open(self.currentRuleFile, 'r')
+
+        st = '\n'.join(file.readlines())
+        self.rule.fromString(st)
+
+        if len(self.scene.items()) > 0:
+            for item in self.scene.items():
+                self.scene.removeItem(item)
+
+        self.currentElementFile = self.rule.elementsFileName
+        self.fileName.setText(os.path.basename(self.currentElementFile))
+        self.loadElementsFile()
+        self.scene.setMode(ChainScene.MoveItem)
+
+        for ruleElem in self.rule.elements:
+            for el in self.elementSet.elementList:
+                if el.elementName == ruleElem['elementName']:
+                    item = MetaElement(el.leftConnectorType,
+                                       el.rightConnectorType,
+                                       el.elementName,
+                                       el.color)
+                    self.scene.addItem(item)
+                    item.setPos(QPoint(ruleElem['x'], ruleElem['y']))
+
+        for ruleConn in self.rule.connections:
+            el1 = self.scene.items()[ruleConn['p1']]
+            el2 = self.scene.items()[ruleConn['p2']]
+            self.scene.addConnection(el2, el1)
+
+        self.setWindowTitle("WordChain : Rule editor : " + self.currentRuleFile)
 
     ###########################################################################
     def showWindow(self):
@@ -438,6 +476,7 @@ class RuleEditorNew(QMainWindow):
     def chooseElementsFile(self):
         ret = QFileDialog.getOpenFileName(filter='*.elms')
         self.currentElementFile = ret[0]
+        self.rule.setElementsFileName(self.currentElementFile)
         self.fileName.setText(os.path.basename(self.currentElementFile))
 
     ###########################################################################
@@ -461,8 +500,7 @@ class RuleEditorNew(QMainWindow):
     ###########################################################################
     def testRule(self):
         self.rule.fromElementList(self.scene.items())
-        print(self.rule.firstElement.elementName)
-        print(self.rule.endingElement.elementName)
+        print(self.rule.toString())
 
 
 ###############################################################################
@@ -470,7 +508,6 @@ class RuleEditorNew(QMainWindow):
 
 
 class Connection(QGraphicsLineItem):
-
     ###########################################################################
     def __init__(self, start, end):
         super(Connection, self).__init__()
@@ -510,6 +547,7 @@ class Connection(QGraphicsLineItem):
             self.scene().clearSelection()
             self.setSelected(True)
 
+
 ################################################################################################
 ################################################################################################
 
@@ -518,28 +556,52 @@ class Rule(object):
     def __init__(self):
         self.elements = []
         self.connections = []
-        self.firstElement = None
-        self.endingElement = None
+        self.elementsFileName = None
+
+    def setElementsFileName(self, elementsFileName):
+        self.elementsFileName = elementsFileName
+
+    def fromString(self, string):
+        assert isinstance(string, str)
+
+        jsObj = json.loads(string, 'utf8')
+        self.fromJSON(jsObj)
+
+    def fromJSON(self, data):
+        self.elementsFileName = data.get('elementsFile', None)
+        self.elements = data.get('elements', None)
+        self.connections = data.get('connections', None)
 
     def fromElementList(self, lst):
+        self.elements = []
+        self.connections = []
         for elem in lst:
             if isinstance(elem, MetaElement):
-                self.elements.append(elem)
-                if len(elem.inConnections) == 0:
-                    self.firstElement = elem
-                elif len(elem.outConnections) == 0:
-                    self.endingElement = elem
-            elif isinstance(elem, Connection):
-                self.connections.append(elem)
+                self.elements.append({
+                    'elementName': elem.elementName,
+                    'x': elem.pos().x(),
+                    'y': elem.pos().y()
+                })
+        for elem in lst:
+            if isinstance(elem, Connection):
+                self.connections.append({
+                    'p1': self.elements.index({'elementName': elem.startElement.elementName,
+                                               'x': elem.startElement.pos().x(),
+                                               'y': elem.startElement.pos().y()}),
+                    'p2': self.elements.index({'elementName': elem.endElement.elementName,
+                                               'x': elem.endElement.pos().x(),
+                                               'y': elem.endElement.pos().y()})
+                })
 
     def toJSON(self):
-        jsn = {}
-        jsn['elements'] = self.elements
-        jsn['connections'] = self.connections
+        jsn = {'elementsFile': self.elementsFileName, 'elements': self.elements, 'connections': self.connections}
         return jsn
 
     def toString(self):
-        pass
+        return json.dumps(self.toJSON(), sort_keys=True, indent=4, separators=(',', ': '))
+
+    def toBytes(self):
+        return bytes(self.toString(), encoding='utf8')
 
     def check(self):
         return False

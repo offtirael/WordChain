@@ -368,6 +368,7 @@ class RuleEditorNew(QMainWindow):
         buttons = self.buttonGroup.buttons()
         for button in buttons:
             button.setChecked(False)
+        self.rule.fromElementList(self.scene.items())
 
     ###########################################################################
     def pointerGroupClicked(self, i):
@@ -427,7 +428,7 @@ class RuleEditorNew(QMainWindow):
         if self.currentRuleFile is not None:
             saveFile = QSaveFile(self.currentRuleFile)
             saveFile.open(QIODevice.WriteOnly)
-            data = self.rule.toBytes()
+            data = self.ruleSet.toBytes()
             saveFile.writeData(data)
             saveFile.commit()
         else:
@@ -448,25 +449,23 @@ class RuleEditorNew(QMainWindow):
         file = open(self.currentRuleFile, 'r')
 
         st = '\n'.join(file.readlines())
-        self.rule.fromString(st)
+        self.ruleSet.fromString(st)
 
         if len(self.scene.items()) > 0:
             for item in self.scene.items():
                 self.scene.removeItem(item)
 
-        self.currentElementFile = self.rule.elementsFileName
+        self.currentElementFile = self.ruleSet.elementsFileName
         self.fileName.setText(os.path.basename(self.currentElementFile))
         self.loadElementsFile()
         self.scene.setMode(ChainScene.MoveItem)
-
-
+        self.updateRuleList()
+        self.changeCurrentRule(0)
 
         self.setWindowTitle("WordChain : Rule editor : " + self.currentRuleFile)
 
     ###########################################################################
     def showWindow(self):
-        #self.rule = Rule()
-        #self.ruleSet.addRule(self.rule)
         self.show()
         self.updateRuleList()
 
@@ -539,7 +538,7 @@ class RuleEditorNew(QMainWindow):
 
     ###########################################################################
     def testRule(self):
-        #self.rule.fromElementList(self.scene.items())
+        self.rule.fromElementList(self.scene.items())
         print(self.ruleSet.toString())
 
 

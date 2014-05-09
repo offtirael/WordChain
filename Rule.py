@@ -160,3 +160,16 @@ class RuleSet(object):
 
     def toBytes(self):
         return bytes(self.toString(), encoding='utf8')
+
+    def fromJSON(self, data):
+        self.elementsFileName = data.get('elementsFile', None)
+        for ruleDict in data['rules']:
+            rule = Rule()
+            rule.fromJSON(ruleDict)
+            self.addRule(rule)
+
+    def fromString(self, string):
+        assert isinstance(string, str)
+
+        jsObj = json.loads(string, 'utf8')
+        self.fromJSON(jsObj)

@@ -2,8 +2,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
 from ElementEditor import ElementEditor
-from RuleEditor import RuleEditorNew
-from Practice import PracticeWindow
+from RuleEditor import RuleEditor
+from Practice import Practice
 
 
 class StartWindow(QMainWindow):
@@ -32,9 +32,8 @@ class StartWindow(QMainWindow):
         self.setWindowTitle("WordChain")
 
         self.elementEditor = ElementEditor()
-        #self.elementEditorWindow = ElementEditorWindow()
-        self.ruleEditor = RuleEditorNew()
-        self.practiceWindow = PracticeWindow()
+        self.ruleEditor = RuleEditor()
+        self.practice = Practice()
 
     def startElementEditor(self):
         self.elementEditor.showWindow()
@@ -43,5 +42,4 @@ class StartWindow(QMainWindow):
         self.ruleEditor.showWindow()
 
     def startPractice(self):
-        self.practiceWindow.show()
-        self.practiceWindow.move(self.x() + 40, self.y() + 40)
+        self.practice.showWindow()

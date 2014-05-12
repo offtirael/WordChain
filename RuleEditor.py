@@ -222,10 +222,10 @@ class ChainScene(QGraphicsScene):
 ###############################################################################
 
 
-class RuleEditorNew(QMainWindow):
+class RuleEditor(QMainWindow):
     ###########################################################################
     def __init__(self, parent=None):
-        super(RuleEditorNew, self).__init__(parent)
+        super(RuleEditor, self).__init__(parent)
 
         self.currentElementFile = None
         self.currentRuleFile = None

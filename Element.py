@@ -50,17 +50,26 @@ class MetaElement(QGraphicsPolygonItem):
 
         self.outConnections = []
         self.inConnections = []
+        self.words = []
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
+
+    def addWord(self, word):
+        self.words.append(word)
+
+    def addWords(self, wordList):
+        if isinstance(wordList, list):
+            self.words = wordList
+
+    def removeWord(self, idx):
+        if idx < len(self.words):
+            self.words.remove(self.words[idx])
 
     def paint(self, painter, option, widget=None):
         painter.setPen(self.pen)
         painter.setBrush(self.color)
         painter.drawPath(self.formPath)
         painter.drawText(self.boundRect, Qt.AlignCenter, self.elementName)
-        #if self.isSelected():
-        #    painter.setPen(QPen(Qt.black, 1, Qt.DashLine))
-        #    painter.drawRect(self.boundingRect())
 
     def contextMenuEvent(self, event):
         self.scene().clearSelection()
@@ -76,12 +85,16 @@ class MetaElement(QGraphicsPolygonItem):
             self.leftConnectorType = connType
             self.setDrawPath()
 
+            self.boundRect = self.formPath.boundingRect()
+
     def changeRightConnector(self, connType):
         assert isinstance(connType, int)
         if connType in Connector.connectorTypes:
             self.rightConnector = RightConnector(connType, self.rightBottom, self.rightTop)
             self.rightConnectorType = connType
             self.setDrawPath()
+
+            self.boundRect = self.formPath.boundingRect()
 
     def changeColor(self, color):
         assert isinstance(color, QColor)
@@ -165,8 +178,11 @@ class ElementSet(object):
     def toJSON(self):
         lst = []
         for elem in self.elementList:
-            obj = {'elementName': elem.elementName, 'leftConnectorType': elem.leftConnectorType,
-                   'rightConnectorType': elem.rightConnectorType, 'color': elem.color.name()}
+            obj = {'elementName': elem.elementName,
+                   'leftConnectorType': elem.leftConnectorType,
+                   'rightConnectorType': elem.rightConnectorType,
+                   'color': elem.color.name(),
+                   'words': elem.words}
             lst.append(obj)
         return lst
 
@@ -192,8 +208,10 @@ class ElementSet(object):
             leftConnectorType = obj.get('leftConnectorType', None)
             rightConnectorType = obj.get('rightConnectorType', None)
             color = obj.get('color', None)
+            wordList = obj.get('words', [])
 
             if elementName is not None and leftConnectorType is not None and rightConnectorType is not None and\
                             color is not None:
                 newElem = MetaElement(leftConnectorType, rightConnectorType, elementName, QColor(color))
+                newElem.addWords(wordList)
                 self.addElement(newElem)

@@ -165,20 +165,6 @@ class ChainScene(QGraphicsScene):
             return False
 
     ###########################################################################
-    @staticmethod
-    def length(qp1, qp2):
-        """
-        Compute distance between two points.
-
-        Keyword arguments:
-        qp1 -- first point, QPoint
-        qp2 -- second point, QPoint
-        """
-        dx = pow(qp1.x() - qp2.x(), 2)
-        dy = pow(qp1.y() - qp2.y(), 2)
-        return sqrt(dx + dy)
-
-    ###########################################################################
     def addConnection(self, el1, el2):
         """
         Create connection between two elements.
@@ -483,6 +469,7 @@ class RuleEditor(QMainWindow):
             self.rule.setName(name)
             self.ruleSet.addRule(self.rule)
         self.updateRuleList()
+        self.changeCurrentRule(len(self.ruleSet.ruleList) - 1)
         self.ruleListWidget.setCurrentRow(len(self.ruleSet.ruleList) - 1)
 
     def changeCurrentRule(self, idx):

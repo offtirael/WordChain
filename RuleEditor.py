@@ -165,7 +165,8 @@ class ChainScene(QGraphicsScene):
             return False
 
     ###########################################################################
-    def addConnection(self, el1, el2):
+    connectionCount = 1
+    def addConnection(self, el1, el2, connName=None):
         """
         Create connection between two elements.
 
@@ -173,15 +174,18 @@ class ChainScene(QGraphicsScene):
         el1 -- start element, MetaElement
         el2 -- end element, MetaElement
         """
+        name = connName
+        if connName is None:
+            name = "c" + str(ChainScene.connectionCount)
         if el1.pos().x() < el2.pos().x():
-            conn = Connection(el1, el2)
+            conn = Connection(el1, el2, name)
             el1.outConnections.append(conn)
             el2.inConnections.append(conn)
         else:
-            conn = Connection(el2, el1)
+            conn = Connection(el2, el1, name)
             el1.inConnections.append(conn)
             el2.outConnections.append(conn)
-
+        ChainScene.connectionCount += 1
         self.addItem(conn)
 
     ###########################################################################
@@ -201,7 +205,13 @@ class ChainScene(QGraphicsScene):
 
     ###########################################################################
     def itemProperties(self):
-        pass
+        if isinstance(self.selectedItems()[0], Connection):
+            name, ok = QInputDialog.getText(None,
+                                            "Change connection name",
+                                            "Enter new connection name:")
+            if name is not None and ok:
+                self.selectedItems()[0].name = name
+                self.update()
 
 
 ###############################################################################
@@ -496,7 +506,8 @@ class RuleEditor(QMainWindow):
         for ruleConn in self.rule.connections:
             el1 = self.scene.items()[ruleConn['p1']]
             el2 = self.scene.items()[ruleConn['p2']]
-            self.scene.addConnection(el2, el1)
+            name = ruleConn.get('name', '')
+            self.scene.addConnection(el2, el1, name)
 
     ###########################################################################
     def chooseElementsFile(self):

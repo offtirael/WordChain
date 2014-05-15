@@ -1,18 +1,20 @@
 import json
-from PyQt5.QtCore import QRectF, QSizeF, QLineF, Qt
+from PyQt5.QtCore import QRectF, QSizeF, QLineF, Qt, QPoint
 from PyQt5.QtGui import QColor, QPen
 from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsItem
+import math
 from Element import MetaElement, ElementSet
 
 
 class Connection(QGraphicsLineItem):
     ###########################################################################
-    def __init__(self, start, end):
+    def __init__(self, start, end, name):
         super(Connection, self).__init__()
 
         self.startElement = start
         self.endElement = end
         self.color = QColor(0, 0, 0)
+        self.name = name
         self.setPen(QPen(self.color, 4, Qt.SolidLine, Qt.RoundCap,
                          Qt.RoundJoin))
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
@@ -34,7 +36,14 @@ class Connection(QGraphicsLineItem):
         self.setLine(QLineF(self.startElement.getRightCenter(),
                             self.endElement.getLeftCenter()))
         painter.setPen(self.pen())
+        p1 = self.line().p1()
+        p2 = self.line().p2()
+        #angle = math.atan2(p2.y() - p1.y(), p2.x() - p1.x())
+        #textPos = QPoint((p1.x() + p2.x()) / 2 + 10, ((p1.y() + p2.y()) / 2) + 10)
+
         painter.drawLine(self.line())
+        #painter.rotate(angle * 180 / math.pi)
+        #painter.drawText(textPos, self.name)
 
     ###########################################################################
     def updatePosition(self):
@@ -77,22 +86,29 @@ class Rule(object):
     def fromElementList(self, lst):
         self.elements = []
         self.connections = []
-        for elem in lst:
-            if isinstance(elem, MetaElement):
-                self.elements.append({
-                    'elementName': elem.elementName,
-                    'x': elem.pos().x(),
-                    'y': elem.pos().y()
-                })
-        for elem in lst:
-            if isinstance(elem, Connection):
-                self.connections.append({
-                    'p1': self.elements.index({'elementName': elem.startElement.elementName,
-                                               'x': elem.startElement.pos().x(),
-                                               'y': elem.startElement.pos().y()}),
-                    'p2': self.elements.index({'elementName': elem.endElement.elementName,
-                                               'x': elem.endElement.pos().x(),
-                                               'y': elem.endElement.pos().y()})
+
+        tmpConns = [c for c in lst if isinstance(c, Connection)]
+        tmpElements = [(el, el.pos().x()) for el in lst if isinstance(el, MetaElement)]
+
+        tmpElements.sort(key=lambda e: e[1])  # Sort elements by X-coordinate
+        tmpElements = [e[0] for e in tmpElements]
+
+        for elem in tmpElements:
+            self.elements.append({
+                'elementName': elem.elementName,
+                'x': elem.pos().x(),
+                'y': elem.pos().y()
+            })
+
+        for elem in tmpConns:
+            self.connections.append({
+                'p1': self.elements.index({'elementName': elem.startElement.elementName,
+                                           'x': elem.startElement.pos().x(),
+                                           'y': elem.startElement.pos().y()}),
+                'p2': self.elements.index({'elementName': elem.endElement.elementName,
+                                           'x': elem.endElement.pos().x(),
+                                           'y': elem.endElement.pos().y()}),
+                'name': elem.name
                 })
 
     def toJSON(self):

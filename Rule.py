@@ -114,7 +114,9 @@ class Rule(object):
                 'p2': self.elements.index({'elementName': elem.endElement.elementName,
                                            'x': elem.endElement.pos().x(),
                                            'y': elem.endElement.pos().y()}),
-                'name': elem.name
+                'name': elem.name,
+                'p1Properties': elem.p1Properties,
+                'p2Properties': elem.p2Properties
                 })
 
     ###########################################################################

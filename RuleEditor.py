@@ -129,7 +129,10 @@ class ChainScene(QGraphicsScene):
                             startItems[0] != endItems[0]:
                 startItem = startItems[0]
                 endItem = endItems[0]
-                self.addConnection(startItem, endItem)
+                conn = self.addConnection(startItem, endItem)
+                conn.p1Properties = []
+                conn.p2Properties = []
+                self.addItem(conn)
         if self.line:
             self.removeItem(self.line)
         self.clearSelection()
@@ -187,7 +190,8 @@ class ChainScene(QGraphicsScene):
             el1.inConnections.append(conn)
             el2.outConnections.append(conn)
         ChainScene.connectionCount += 1
-        self.addItem(conn)
+        #self.addItem(conn)
+        return conn
 
     ###########################################################################
     def deleteItem(self):
@@ -207,9 +211,13 @@ class ChainScene(QGraphicsScene):
     ###########################################################################
     def itemProperties(self):
         if isinstance(self.selectedItems()[0], Connection):
-            name, ok = RulePropertiesDialog.getRuleProperties(self.selectedItems()[0])
+            name, p1Prop, p2Prop, ok =\
+                RulePropertiesDialog.getRuleProperties(self.selectedItems()[0])
+
             if name is not None and ok:
                 self.selectedItems()[0].name = name
+                self.selectedItems()[0].p1Properties = p1Prop
+                self.selectedItems()[0].p2Properties = p2Prop
                 self.update()
 
 
@@ -444,6 +452,7 @@ class RuleEditor(QMainWindow):
         file = open(self.currentRuleFile, 'r')
 
         st = '\n'.join(file.readlines())
+
         self.ruleSet.fromString(st)
 
         if len(self.scene.items()) > 0:
@@ -507,7 +516,10 @@ class RuleEditor(QMainWindow):
             el1 = self.scene.items()[ruleConn['p1']]
             el2 = self.scene.items()[ruleConn['p2']]
             name = ruleConn.get('name', '')
-            self.scene.addConnection(el2, el1, name)
+            conn = self.scene.addConnection(el2, el1, name)
+            conn.p1Properties = ruleConn['p1Properties']
+            conn.p2Properties = ruleConn['p2Properties']
+            self.scene.addItem(conn)
 
     ###########################################################################
     def chooseElementsFile(self):
@@ -617,12 +629,59 @@ class RulePropertiesDialog(QDialog):
         dialog = RulePropertiesDialog(connection, parent)
         dialog.name.setText(connection.name)
 
+        lstLeft = []
+        lstRight = []
+
+        for combo in dialog.leftCombos:
+            tmp = []
+            cnt = 0
+            while cnt < combo.count():
+                tmp.append(combo.itemText(cnt))
+                cnt += 1
+            lstLeft.append(tmp)
+
+        for combo in dialog.rightCombos:
+            tmp = []
+            cnt = 0
+            while cnt < combo.count():
+                tmp.append(combo.itemText(cnt))
+                cnt += 1
+            lstRight.append(tmp)
+
+        if len(connection.p1Properties) > 0:
+            for prop in connection.p1Properties:
+                propIdx = dialog.leftPropNames.index(prop['property'])
+                val = lstLeft[propIdx].index(prop['value'])
+                dialog.leftCombos[propIdx].setCurrentIndex(val)
+
+        if len(connection.p2Properties) > 0:
+            for prop in connection.p2Properties:
+                propIdx = dialog.rightPropNames.index(prop['property'])
+                val = lstRight[propIdx].index(prop['value'])
+                dialog.rightCombos[propIdx].setCurrentIndex(val)
+
         result = dialog.exec_()
 
         name = dialog.name.text()
+        p1Properties = []
+        p2Properties = []
 
-        return name, result == QDialog.Accepted
+        for propName in dialog.leftPropNames:
+            idx = dialog.leftPropNames.index(propName)
+            val = dialog.leftCombos[idx].currentText()
+            if val != '--':
+                p1Properties.append({
+                    'property': propName,
+                    'value': val
+                })
 
+        for propName in dialog.rightPropNames:
+            idx = dialog.rightPropNames.index(propName)
+            val = dialog.rightCombos[idx].currentText()
+            if val != '--':
+                p2Properties.append({
+                    'property': propName,
+                    'value': val
+                })
 
-
-
+        return name, p1Properties, p2Properties, result == QDialog.Accepted

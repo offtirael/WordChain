@@ -7,7 +7,7 @@ from Connectors import *
 
 
 class MetaElement(QGraphicsPolygonItem):
-
+    ###########################################################################
     def __init__(self, leftConnectorType, rightConnectorType, elementName, color=QColor(255, 255, 255)):
         super(MetaElement, self).__init__()
 
@@ -51,33 +51,68 @@ class MetaElement(QGraphicsPolygonItem):
         self.outConnections = []
         self.inConnections = []
         self.words = []
+        self.properties = []
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
 
-    def addWord(self, word):
-        self.words.append(word)
+    ###########################################################################
+    def addWord(self, word, properties):
+        self.words.append({
+            'word': word,
+            'properties': properties
+        })
 
+    ###########################################################################
+    def changeColor(self, color):
+        self.color = color
+
+    ###########################################################################
     def addWords(self, wordList):
         if isinstance(wordList, list):
             self.words = wordList
 
+    ###########################################################################
     def removeWord(self, idx):
         if idx < len(self.words):
             self.words.remove(self.words[idx])
 
+    ###########################################################################
+    def addProperty(self, name, values):
+        assert isinstance(name, str)
+        assert isinstance(values, list)
+
+        self.properties.append({
+            'name': name,
+            'values': values
+        })
+
+    ###########################################################################
+    def removeProperty(self, idx):
+        if idx < len(self.properties):
+            self.properties.remove(self.properties[idx])
+
+    ###########################################################################
+    def addProperties(self, propList):
+        if isinstance(propList, list):
+            self.properties = propList
+
+    ###########################################################################
     def paint(self, painter, option, widget=None):
         painter.setPen(self.pen)
         painter.setBrush(self.color)
         painter.drawPath(self.formPath)
         painter.drawText(self.boundRect, Qt.AlignCenter, self.elementName)
 
+    ###########################################################################
     def contextMenuEvent(self, event):
         self.scene().clearSelection()
         self.setSelected(True)
 
+    ###########################################################################
     def boundingRect(self):
         return self.formPath.boundingRect()
 
+    ###########################################################################
     def changeLeftConnector(self, connType):
         assert isinstance(connType, int)
         if connType in Connector.connectorTypes:
@@ -87,6 +122,7 @@ class MetaElement(QGraphicsPolygonItem):
 
             self.boundRect = self.formPath.boundingRect()
 
+    ###########################################################################
     def changeRightConnector(self, connType):
         assert isinstance(connType, int)
         if connType in Connector.connectorTypes:
@@ -96,10 +132,7 @@ class MetaElement(QGraphicsPolygonItem):
 
             self.boundRect = self.formPath.boundingRect()
 
-    def changeColor(self, color):
-        assert isinstance(color, QColor)
-        self.color = color
-
+    ###########################################################################
     def setDrawPath(self):
         self.formPath = QPainterPath()
         self.formPath.moveTo(self.leftTop)
@@ -110,6 +143,7 @@ class MetaElement(QGraphicsPolygonItem):
         self.formPath.lineTo(self.leftBottom)
         self.formPath.connectPath(self.leftConnector.connectorPath)
 
+    ###########################################################################
     def getLeftCenter(self):
         point = self.pos()
         delta = 0
@@ -122,6 +156,7 @@ class MetaElement(QGraphicsPolygonItem):
         point.setX(point.x() - 50 + delta)
         return point
 
+    ###########################################################################
     def getRightCenter(self):
         point = self.pos()
         delta = 0
@@ -134,6 +169,7 @@ class MetaElement(QGraphicsPolygonItem):
         point.setX(point.x() + 50 + delta)
         return point
 
+    ###########################################################################
     def image(self):
         pixmap = QPixmap(250, 250)
         pixmap.fill(Qt.transparent)
@@ -144,6 +180,7 @@ class MetaElement(QGraphicsPolygonItem):
         painter.drawPath(self.formPath)
         return pixmap
 
+    ###########################################################################
     def itemChange(self, change, value):
         if change == QGraphicsItem.ItemPositionChange:
             for conn in self.connections:
@@ -151,6 +188,7 @@ class MetaElement(QGraphicsPolygonItem):
 
         return value
 
+    ###########################################################################
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             self.scene().clearSelection()
@@ -162,19 +200,23 @@ class MetaElement(QGraphicsPolygonItem):
 
 
 class ElementSet(object):
+    ###########################################################################
     def __init__(self):
         super(ElementSet, self).__init__()
         self.elementList = []
 
+    ###########################################################################
     def addElement(self, element):
         assert isinstance(element, MetaElement)
         self.elementList.append(element)
 
+    ###########################################################################
     def removeElement(self, index):
         assert isinstance(index, int)
         if index < len(self.elementList):
             self.elementList.pop(index)
 
+    ###########################################################################
     def toJSON(self):
         lst = []
         for elem in self.elementList:
@@ -182,22 +224,27 @@ class ElementSet(object):
                    'leftConnectorType': elem.leftConnectorType,
                    'rightConnectorType': elem.rightConnectorType,
                    'color': elem.color.name(),
-                   'words': elem.words}
+                   'words': elem.words,
+                   'properties': elem.properties}
             lst.append(obj)
         return lst
 
+    ###########################################################################
     def toString(self):
         return json.dumps(self.toJSON(), sort_keys=True, indent=4, separators=(',', ': '))
 
+    ###########################################################################
     def toBytes(self):
         return bytes(self.toString(), encoding='utf8')
 
+    ###########################################################################
     def fromString(self, string):
         assert isinstance(string, str)
 
         jsObj = json.loads(string, 'utf8')
         self.fromJSON(jsObj)
 
+    ###########################################################################
     def fromJSON(self, data):
         assert isinstance(data, list)
 
@@ -209,17 +256,20 @@ class ElementSet(object):
             rightConnectorType = obj.get('rightConnectorType', None)
             color = obj.get('color', None)
             wordList = obj.get('words', [])
+            properties = obj.get('properties', [])
 
             if elementName is not None and leftConnectorType is not None and rightConnectorType is not None and\
                             color is not None:
                 newElem = MetaElement(leftConnectorType, rightConnectorType, elementName, QColor(color))
                 newElem.addWords(wordList)
+                newElem.addProperties(properties)
                 self.addElement(newElem)
 
 
 class Element(QGraphicsPolygonItem):
     MULT = 15
 
+    ###########################################################################
     def __init__(self, leftConnectorType=1, rightConnectorType=1, text=1, color=QColor(255, 255, 255), lst=None):
         super(Element, self).__init__()
 
@@ -231,6 +281,7 @@ class Element(QGraphicsPolygonItem):
             self.compound = False
             self.parts = [self, ]
             self.pen = QPen()
+            self.properties = []
 
             self.pen.setWidth(2)
 
@@ -267,6 +318,8 @@ class Element(QGraphicsPolygonItem):
             self.pen = QPen()
             self.pen.setWidth(2)
 
+            self.properties = []
+
             self.color = lst[0].color
 
             self.leftBottom = QPoint(-50, 25)
@@ -289,18 +342,22 @@ class Element(QGraphicsPolygonItem):
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
 
+    ###########################################################################
     def boundingRect(self):
         return self.formPath.boundingRect()
 
+    ###########################################################################
     def paint(self, painter, option, widget=None):
         painter.setPen(self.pen)
         painter.setBrush(self.color)
         painter.drawPath(self.formPath)
         painter.drawText(self.boundRect, Qt.AlignCenter, self.text)
 
+    ###########################################################################
     def setMetaName(self, metaName):
         self.metaName = metaName
 
+    ###########################################################################
     def setDrawPath(self):
         self.formPath = QPainterPath()
         self.formPath.moveTo(self.leftTop)
@@ -332,6 +389,7 @@ class Element(QGraphicsPolygonItem):
         #     self.formPath.lineTo(last.leftBottom)
         #     self.formPath.connectPath(first.leftConnector.connectorPath)
 
+    ###########################################################################
     def getLeftCenter(self):
         point = self.pos()
         delta = 0
@@ -344,6 +402,7 @@ class Element(QGraphicsPolygonItem):
         point.setX(point.x() - (self.width / 2) + delta)
         return point
 
+    ###########################################################################
     def getRightCenter(self):
         point = self.pos()
         delta = 0
@@ -356,6 +415,7 @@ class Element(QGraphicsPolygonItem):
         point.setX(point.x() + (self.width / 2) + delta)
         return point
 
+    ###########################################################################
     def attach(self, elem):
         self.compound = True
 

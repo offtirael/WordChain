@@ -81,6 +81,7 @@ class ChainScene(QGraphicsScene):
                                    self.toInsert.rightConnectorType,
                                    self.toInsert.elementName,
                                    self.toInsert.color)
+                item.addProperties(self.toInsert.properties)
                 self.addItem(item)
                 item.setPos(event.scenePos())
                 self.itemInserted.emit(item)
@@ -206,9 +207,7 @@ class ChainScene(QGraphicsScene):
     ###########################################################################
     def itemProperties(self):
         if isinstance(self.selectedItems()[0], Connection):
-            name, ok = QInputDialog.getText(None,
-                                            "Change connection name",
-                                            "Enter new connection name:")
+            name, ok = RulePropertiesDialog.getRuleProperties(self.selectedItems()[0])
             if name is not None and ok:
                 self.selectedItems()[0].name = name
                 self.update()
@@ -500,6 +499,7 @@ class RuleEditor(QMainWindow):
                                        el.rightConnectorType,
                                        el.elementName,
                                        el.color)
+                    item.addProperties(el.properties)
                     self.scene.addItem(item)
                     item.setPos(QPoint(ruleElem['x'], ruleElem['y']))
 
@@ -538,6 +538,90 @@ class RuleEditor(QMainWindow):
     def testRule(self):
         self.rule.fromElementList(self.scene.items())
         print(self.ruleSet.toString())
+
+
+class RulePropertiesDialog(QDialog):
+    def __init__(self, connection, parent=None):
+        super(RulePropertiesDialog, self).__init__(parent)
+
+        layout = QVBoxLayout(self)
+
+        self.label1 = QLabel("Name")
+        self.name = QLineEdit()
+
+        self.hLayout1 = QHBoxLayout()
+        self.label2 = QLabel("Start element properties")
+        self.label3 = QLabel("End element properties")
+        self.hLayout1.addWidget(self.label2)
+        self.hLayout1.addWidget(self.label3)
+
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok |
+                                        QDialogButtonBox.Cancel,
+                                        Qt.Horizontal, self)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        self.propertiesLayout = QHBoxLayout()
+
+        self.leftPropertiesLayout = QVBoxLayout()
+        self.rightPropertiesLayout = QVBoxLayout()
+
+        self.leftCombos = []
+        self.leftPropNames = []
+
+        self.rightCombos = []
+        self.rightPropNames = []
+
+        for prop in connection.startElement.properties:
+            innerLayout = QHBoxLayout()
+            label = QLabel(prop['name'])
+            combo = QComboBox()
+            combo.addItem('--')
+            for val in prop['values']:
+                combo.addItem(val)
+            innerLayout.addWidget(label)
+            innerLayout.addWidget(combo)
+
+            self.leftCombos.append(combo)
+            self.leftPropNames.append(prop['name'])
+
+            self.leftPropertiesLayout.addLayout(innerLayout)
+
+        for prop in connection.endElement.properties:
+            innerLayout = QHBoxLayout()
+            label = QLabel(prop['name'])
+            combo = QComboBox()
+            combo.addItem('--')
+            for val in prop['values']:
+                combo.addItem(val)
+            innerLayout.addWidget(label)
+            innerLayout.addWidget(combo)
+
+            self.rightCombos.append(combo)
+            self.rightPropNames.append(prop['name'])
+
+            self.rightPropertiesLayout.addLayout(innerLayout)
+
+        self.propertiesLayout.addLayout(self.leftPropertiesLayout)
+        self.propertiesLayout.addLayout(self.rightPropertiesLayout)
+
+        # Layout
+        layout.addWidget(self.label1)
+        layout.addWidget(self.name)
+        layout.addLayout(self.hLayout1)
+        layout.addLayout(self.propertiesLayout)
+        layout.addWidget(self.buttons)
+
+    @staticmethod
+    def getRuleProperties(connection, parent=None):
+        dialog = RulePropertiesDialog(connection, parent)
+        dialog.name.setText(connection.name)
+
+        result = dialog.exec_()
+
+        name = dialog.name.text()
+
+        return name, result == QDialog.Accepted
 
 
 

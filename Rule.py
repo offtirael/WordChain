@@ -13,6 +13,8 @@ class Connection(QGraphicsLineItem):
 
         self.startElement = start
         self.endElement = end
+        self.p1Properties = []
+        self.p2Properties = []
         self.color = QColor(0, 0, 0)
         self.name = name
         self.setPen(QPen(self.color, 4, Qt.SolidLine, Qt.RoundCap,
@@ -38,16 +40,13 @@ class Connection(QGraphicsLineItem):
         painter.setPen(self.pen())
         p1 = self.line().p1()
         p2 = self.line().p2()
-        #angle = math.atan2(p2.y() - p1.y(), p2.x() - p1.x())
-        #textPos = QPoint((p1.x() + p2.x()) / 2 + 10, ((p1.y() + p2.y()) / 2) + 10)
 
         painter.drawLine(self.line())
-        #painter.rotate(angle * 180 / math.pi)
-        #painter.drawText(textPos, self.name)
 
     ###########################################################################
     def updatePosition(self):
-        line = QLineF(self.startElement.getRightCenter(), self.endElement.getLeftCenter())
+        line = QLineF(self.startElement.getRightCenter(),
+                      self.endElement.getLeftCenter())
         self.setLine(line)
 
     ###########################################################################
@@ -60,29 +59,36 @@ class Connection(QGraphicsLineItem):
             self.scene().clearSelection()
             self.setSelected(True)
 
+
 class Rule(object):
+    ###########################################################################
     def __init__(self):
         self.name = None
         self.elements = []
         self.connections = []
 
+    ###########################################################################
     def setName(self, name):
         self.name = name
 
+    ###########################################################################
     def setElementsFileName(self, elementsFileName):
         self.elementsFileName = elementsFileName
 
+    ###########################################################################
     def fromString(self, string):
         assert isinstance(string, str)
 
         jsObj = json.loads(string, 'utf8')
         self.fromJSON(jsObj)
 
+    ###########################################################################
     def fromJSON(self, data):
         self.elements = data.get('elements', None)
         self.connections = data.get('connections', None)
         self.name = data.get('name', None)
 
+    ###########################################################################
     def fromElementList(self, lst):
         self.elements = []
         self.connections = []
@@ -111,52 +117,63 @@ class Rule(object):
                 'name': elem.name
                 })
 
+    ###########################################################################
     def toJSON(self):
         jsn = {'name': self.name,
                'elements': self.elements,
                'connections': self.connections}
         return jsn
 
+    ###########################################################################
     def toString(self):
         return json.dumps(self.toJSON(),
                           sort_keys=True,
                           indent=4,
                           separators=(',', ': '))
 
+    ###########################################################################
     def toBytes(self):
         return bytes(self.toString(), encoding='utf8')
 
+    ###########################################################################
     def check(self):
         return False
 
 
 class RuleSet(object):
+    ###########################################################################
     def __init__(self):
         super(RuleSet, self).__init__()
 
         self.ruleList = []
         self.elementsFileName = None
 
+    ###########################################################################
     def addRule(self, rule):
         self.ruleList.append(rule)
 
+    ###########################################################################
     def deleteRule(self, idx):
         if idx < len(self.ruleList):
             self.ruleList.remove(self.ruleList[idx])
 
+    ###########################################################################
     def getRule(self, idx):
         if idx < len(self.ruleList):
             return self.ruleList[idx]
         else:
             return None
 
+    ###########################################################################
     def setElementsFileName(self, name):
         assert isinstance(name, str)
         self.elementsFileName = name
 
+    ###########################################################################
     def clear(self):
         self.ruleList = []
 
+    ###########################################################################
     def toJSON(self):
         lst = []
         for rule in self.ruleList:
@@ -168,15 +185,18 @@ class RuleSet(object):
 
         return jsn
 
+    ###########################################################################
     def toString(self):
         return json.dumps(self.toJSON(),
                           sort_keys=True,
                           indent=4,
                           separators=(',', ': '))
 
+    ###########################################################################
     def toBytes(self):
         return bytes(self.toString(), encoding='utf8')
 
+    ###########################################################################
     def fromJSON(self, data):
         self.elementsFileName = data.get('elementsFile', None)
         for ruleDict in data['rules']:
@@ -184,6 +204,7 @@ class RuleSet(object):
             rule.fromJSON(ruleDict)
             self.addRule(rule)
 
+    ###########################################################################
     def fromString(self, string):
         assert isinstance(string, str)
 

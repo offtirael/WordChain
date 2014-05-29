@@ -562,8 +562,8 @@ class RulePropertiesDialog(QDialog):
         self.name = QLineEdit()
 
         self.hLayout1 = QHBoxLayout()
-        self.label2 = QLabel("Start element properties")
-        self.label3 = QLabel("End element properties")
+        self.label2 = QLabel(connection.startElement.elementName + " properties")
+        self.label3 = QLabel(connection.endElement.elementName + " properties")
         self.hLayout1.addWidget(self.label2)
         self.hLayout1.addWidget(self.label3)
 

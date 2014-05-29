@@ -86,8 +86,9 @@ class Practice(QMainWindow):
         metaElem = self.elementSet.elementList[self.toolBox.currentIndex()]
         element = Element(metaElem.leftConnectorType,
                           metaElem.rightConnectorType,
-                          metaElem.words[i],
+                          metaElem.words[i]['word'],
                           metaElem.color)
+        element.properties = metaElem.words[i]['properties']
         element.setMetaName(metaElem.elementName)
         self.scene.setElementToInsert(element)
 
@@ -117,7 +118,7 @@ class Practice(QMainWindow):
             colNum = 0
             num = 0
             for word in elem.words:
-                toolBoxLayout.addWidget(self.createCellWidget(word, elem.image(), num), rowNum, colNum)
+                toolBoxLayout.addWidget(self.createCellWidget(word['word'], elem.image(), num), rowNum, colNum)
                 colNum += 1
                 num += 1
                 if colNum > 1:
@@ -203,63 +204,92 @@ class PracticeScene(QGraphicsScene):
         if not el1.compound and not el2.compound:
             for rule in self.ruleSet.ruleList:
                 namesList = [elem['elementName'] for elem in rule.elements]
-                print(namesList)
 
                 el1Index = namesList.index(el1.metaName)
                 el2Index = namesList.index(el2.metaName)
-
                 if el2Index - el1Index == 1:
-                    lst = [el1, el2]
-                    compound = Element(lst=lst)
-                    compound.setPos(el2.pos())
-                    self.removeItem(el1)
-                    self.removeItem(el2)
-                    self.addItem(compound)
+                    for conn in rule.connections:
+                        if conn['p1'] == el1Index and conn['p2'] == el2Index:
+                            if conn['p1Properties'] == el1.properties \
+                                    and conn['p2Properties'] == el2.properties \
+                                    or conn['p1Properties'] == [] \
+                                    and conn['p2Properties'] == []:
+                                lst = [el1, el2]
+                                compound = Element(lst=lst)
+                                compound.setPos(el2.pos())
+                                self.removeItem(el1)
+                                self.removeItem(el2)
+                                self.addItem(compound)
         elif el1.compound and not el2.compound:
             for rule in self.ruleSet.ruleList:
                 namesList = [elem['elementName'] for elem in rule.elements]
 
+                el_1 = el1.parts[len(el1.parts)-1]
+
                 el1Index = namesList.index(el1.parts[len(el1.parts)-1].metaName)
                 el2Index = namesList.index(el2.metaName)
 
                 if el2Index - el1Index == 1:
-                    lst = el1.parts
-                    lst.append(el2)
-                    compound = Element(lst=lst)
-                    compound.setPos(el2.pos())
-                    self.removeItem(el1)
-                    self.removeItem(el2)
-                    self.addItem(compound)
+                    for conn in rule.connections:
+                        if conn['p1'] == el1Index and conn['p2'] == el2Index:
+                            if conn['p1Properties'] == el_1.properties \
+                                    and conn['p2Properties'] == el2.properties \
+                                    or conn['p1Properties'] == [] \
+                                    and conn['p2Properties'] == []:
+                                print(conn)
+                                lst = el1.parts
+                                lst.append(el2)
+                                compound = Element(lst=lst)
+                                compound.setPos(el2.pos())
+                                self.removeItem(el1)
+                                self.removeItem(el2)
+                                self.addItem(compound)
         elif not el1.compound and el2.compound:
             for rule in self.ruleSet.ruleList:
                 namesList = [elem['elementName'] for elem in rule.elements]
 
+                el_2 = el2.parts[0]
+
                 el1Index = namesList.index(el1.metaName)
-                el2Index = namesList.index(el2.parts[0].metaName)
+                el2Index = namesList.index(el_2.metaName)
 
                 if el2Index - el1Index == 1:
-                    lst = [el1, ]
-                    lst.extend(el2.parts)
-                    compound = Element(lst=lst)
-                    compound.setPos(el2.pos())
-                    self.removeItem(el1)
-                    self.removeItem(el2)
-                    self.addItem(compound)
+                    for conn in rule.connections:
+                        if conn['p1'] == el1Index and conn['p2'] == el2Index:
+                            if conn['p1Properties'] == el1.properties \
+                                    and conn['p2Properties'] == el_2.properties \
+                                    or conn['p1Properties'] == [] \
+                                    and conn['p2Properties'] == []:
+                                lst = [el1, ]
+                                lst.extend(el2.parts)
+                                compound = Element(lst=lst)
+                                compound.setPos(el2.pos())
+                                self.removeItem(el1)
+                                self.removeItem(el2)
+                                self.addItem(compound)
         elif el1.compound and el2.compound:
             for rule in self.ruleSet.ruleList:
                 namesList = [elem['elementName'] for elem in rule.elements]
 
-                el1Index = namesList.index(el1.parts[len(el1.parts)-1].metaName)
-                el2Index = namesList.index(el2.parts[0].metaName)
+                el_1 = el1.parts[len(el1.parts)-1]
+                el_2 = el2.parts[0]
+                el1Index = namesList.index(el_1.metaName)
+                el2Index = namesList.index(el_2.metaName)
 
                 if el2Index - el1Index == 1:
-                    lst = el1.parts
-                    lst.extend(el2.parts)
-                    compound = Element(lst=lst)
-                    compound.setPos(el2.pos())
-                    self.removeItem(el1)
-                    self.removeItem(el2)
-                    self.addItem(compound)
+                    for conn in rule.connections:
+                        if conn['p1'] == el1Index and conn['p2'] == el2Index:
+                            if conn['p1Properties'] == el_1.properties \
+                                    and conn['p2Properties'] == el_2.properties \
+                                    or conn['p1Properties'] == [] \
+                                    and conn['p2Properties'] == []:
+                                lst = el1.parts
+                                lst.extend(el2.parts)
+                                compound = Element(lst=lst)
+                                compound.setPos(el2.pos())
+                                self.removeItem(el1)
+                                self.removeItem(el2)
+                                self.addItem(compound)
 
     def mouseMoveEvent(self, event):
         """
@@ -277,44 +307,10 @@ class PracticeScene(QGraphicsScene):
                                           item.getRightCenter()) <\
                         PracticeScene.MIN_DISTANCE and item is not selected:
                     self.connect(item, selected)
-                    # if not item.compound:
-                    #     for rule in self.ruleSet.ruleList:
-                    #         namesList = [elem['elementName'] for elem in rule.elements]
-                    #
-                    #         itemIndex = namesList.index(item.metaName)
-                    #         selectedIndex = namesList.index(selected.metaName)
-                    #
-                    #         if selectedIndex - itemIndex == 1:
-                    #             print("Connecting 1 type")
-                    #             lst = [item, selected]
-                    #             compound = Element(lst=lst)
-                    #             compound.setPos(selected.pos())
-                    #             self.removeItem(selected)
-                    #             self.removeItem(item)
-                    #             self.addItem(compound)
-                    # elif item.compound:
-                    #     pass
                 elif PracticeScene.distance(selected.getRightCenter(),
                                             item.getLeftCenter()) <\
                         PracticeScene.MIN_DISTANCE and item is not selected:
                     self.connect(selected, item)
-                    # if not item.compound:
-                    #     for rule in self.ruleSet.ruleList:
-                    #         namesList = [elem['elementName'] for elem in rule.elements]
-                    #
-                    #         itemIndex = namesList.index(item.metaName)
-                    #         selectedIndex = namesList.index(selected.metaName)
-                    #
-                    #         if itemIndex - selectedIndex == 1:
-                    #             print("Connecting 2 type")
-                    #             lst = [selected, item]
-                    #             compound = Element(lst=lst)
-                    #             compound.setPos(selected.pos())
-                    #             self.removeItem(selected)
-                    #             self.removeItem(item)
-                    #             self.addItem(compound)
-                    # elif item.compound:
-                    #     pass
 
     @staticmethod
     def distance(p1, p2):

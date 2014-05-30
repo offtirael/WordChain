@@ -1,7 +1,7 @@
 from math import sqrt
 import os
 from PyQt5.QtCore import *
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtWidgets import *
 from Element import ElementSet, Element
 from Rule import RuleSet
@@ -176,10 +176,25 @@ class PracticeScene(QGraphicsScene):
 
         self.elementToInsert = None
 
+        self.contextMenu1 = QMenu()
+        self.contextMenu1.addAction(QAction("Disconnect", self, triggered=self.disconnectItems))
+
         self.setItemIndexMethod(QGraphicsScene.NoIndex)
 
     def setRuleSet(self, ruleSet):
         self.ruleSet = ruleSet
+
+    def disconnectItems(self):
+        if len(self.selectedItems()) > 0:
+            compoundItem = self.selectedItems()[0]
+            pos = compoundItem.pos()
+            for item in compoundItem.parts:
+                item.compound = False
+                self.addItem(item)
+                pos.setX(pos.x() + 40)
+                item.setPos(pos)
+            self.removeItem(compoundItem)
+            self.clearSelection()
 
     def setElementToInsert(self, element):
         assert isinstance(element, Element)
@@ -194,11 +209,15 @@ class PracticeScene(QGraphicsScene):
         event -- mouse event
         """
         super(PracticeScene, self).mousePressEvent(event)
-        if self.elementToInsert:
-            self.addItem(self.elementToInsert)
-            self.itemInserted.emit(self.elementToInsert)
-            self.elementToInsert.setPos(event.scenePos())
-            self.elementToInsert = None
+        if event.button() == Qt.LeftButton:
+            if self.elementToInsert:
+                self.addItem(self.elementToInsert)
+                self.itemInserted.emit(self.elementToInsert)
+                self.elementToInsert.setPos(event.scenePos())
+                self.elementToInsert = None
+        elif event.button() == Qt.RightButton:
+            if len(self.selectedItems()) and self.selectedItems()[0].compound > 0:
+                self.contextMenu1.exec(QCursor.pos())
 
     def connect(self, el1, el2):
         if not el1.compound and not el2.compound:
@@ -220,6 +239,7 @@ class PracticeScene(QGraphicsScene):
                                 self.removeItem(el1)
                                 self.removeItem(el2)
                                 self.addItem(compound)
+                                return
         elif el1.compound and not el2.compound:
             for rule in self.ruleSet.ruleList:
                 namesList = [elem['elementName'] for elem in rule.elements]
@@ -236,7 +256,6 @@ class PracticeScene(QGraphicsScene):
                                     and conn['p2Properties'] == el2.properties \
                                     or conn['p1Properties'] == [] \
                                     and conn['p2Properties'] == []:
-                                print(conn)
                                 lst = el1.parts
                                 lst.append(el2)
                                 compound = Element(lst=lst)
@@ -244,6 +263,7 @@ class PracticeScene(QGraphicsScene):
                                 self.removeItem(el1)
                                 self.removeItem(el2)
                                 self.addItem(compound)
+                                return
         elif not el1.compound and el2.compound:
             for rule in self.ruleSet.ruleList:
                 namesList = [elem['elementName'] for elem in rule.elements]
@@ -267,6 +287,7 @@ class PracticeScene(QGraphicsScene):
                                 self.removeItem(el1)
                                 self.removeItem(el2)
                                 self.addItem(compound)
+                                return
         elif el1.compound and el2.compound:
             for rule in self.ruleSet.ruleList:
                 namesList = [elem['elementName'] for elem in rule.elements]
@@ -290,6 +311,7 @@ class PracticeScene(QGraphicsScene):
                                 self.removeItem(el1)
                                 self.removeItem(el2)
                                 self.addItem(compound)
+                                return
 
     def mouseMoveEvent(self, event):
         """

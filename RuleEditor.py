@@ -74,6 +74,7 @@ class ChainScene(QGraphicsScene):
         Keyword arguments:
         event -- mouse event
         """
+        print("Click")
         super(ChainScene, self).mousePressEvent(event)
         if event.button() == Qt.LeftButton:
             if self.mode == ChainScene.InsertItem:

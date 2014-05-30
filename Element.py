@@ -266,7 +266,7 @@ class ElementSet(object):
                 self.addElement(newElem)
 
 
-class Element(QGraphicsPolygonItem):
+class Element(QGraphicsItem):
     MULT = 15
 
     ###########################################################################
@@ -310,7 +310,10 @@ class Element(QGraphicsPolygonItem):
             self.compound = True
             self.parts = lst
             self.text = ' '.join([w.text for w in lst])
-            self.width = sum([w.width for w in lst]) / 1.5
+            #self.width = sum([w.width for w in lst]) / 1.5
+            #if self.compound:
+            self.width = sum([w.width for w in lst])
+
 
             self.leftConnectorType = self.parts[0].leftConnectorType
             self.rightConnectorType = self.parts[len(self.parts) - 1].rightConnectorType
@@ -331,11 +334,13 @@ class Element(QGraphicsPolygonItem):
             self.leftConnector = LeftConnector(self.leftConnectorType, self.leftBottom, self.leftTop)
             self.rightConnector = RightConnector(self.rightConnectorType, self.rightBottom, self.rightTop)
 
+        if len(self.parts) > 0:
+            self.compound = True
         self.formPath = None
         self.setDrawPath()
 
         self.itemPolygon = self.formPath.toFillPolygon(QTransform())
-        self.setPolygon(self.itemPolygon)
+        #self.setPolygon(self.itemPolygon)
 
         self.boundRect = self.formPath.boundingRect()
 
@@ -351,7 +356,31 @@ class Element(QGraphicsPolygonItem):
         painter.setPen(self.pen)
         painter.setBrush(self.color)
         painter.drawPath(self.formPath)
-        painter.drawText(self.boundRect, Qt.AlignCenter, self.text)
+        if self.compound:
+            wh = self.boundingRect().width() / len(self.parts)
+            rectX = self.boundingRect().topLeft().x()
+            rectY = self.boundingRect().topLeft().y()
+            for text in self.text.split():
+                newRect = QRect(rectX, rectY, wh-5, 50)
+                painter.drawText(newRect, Qt.AlignCenter, text)
+                rectX += wh
+
+            idx = 0
+            numElems = len(self.parts)
+            wh2 = self.boundingRect().width()
+            newPointTop = self.boundingRect().topLeft()
+            newPointBottom = self.boundingRect().bottomLeft()
+            xDelta = wh2 / numElems
+
+            while idx < numElems - 1:
+                newPointTop.setX(newPointTop.x() + xDelta)
+                newPointBottom.setX(newPointBottom.x() + xDelta)
+
+                path = self.middleConnector(newPointTop, newPointBottom, self.parts[idx+1].leftConnectorType)
+                painter.drawPath(path)
+                idx += 1
+        else:
+            painter.drawText(self.boundRect, Qt.AlignCenter, self.text)
 
     ###########################################################################
     def setMetaName(self, metaName):
@@ -360,6 +389,7 @@ class Element(QGraphicsPolygonItem):
     ###########################################################################
     def setDrawPath(self):
         self.formPath = QPainterPath()
+        self.formPath.setFillRule(Qt.WindingFill)
         self.formPath.moveTo(self.leftTop)
 
         self.formPath.lineTo(self.rightTop)
@@ -367,27 +397,6 @@ class Element(QGraphicsPolygonItem):
 
         self.formPath.lineTo(self.leftBottom)
         self.formPath.connectPath(self.leftConnector.connectorPath)
-        # if not self.compound:
-        #     self.formPath = QPainterPath()
-        #     self.formPath.moveTo(self.leftTop)
-        #
-        #     self.formPath.lineTo(self.rightTop)
-        #     self.formPath.connectPath(self.rightConnector.connectorPath)
-        #
-        #     self.formPath.lineTo(self.leftBottom)
-        #     self.formPath.connectPath(self.leftConnector.connectorPath)
-        # else:
-        #     self.formPath = QPainterPath()
-        #     first = self.parts[0]
-        #     last = self.parts[len(self.parts) - 1]
-        #
-        #     self.formPath.moveTo(first.leftTop)
-        #
-        #     self.formPath.lineTo(last.rightTop)
-        #     self.formPath.connectPath(last.rightConnector.connectorPath)
-        #
-        #     self.formPath.lineTo(last.leftBottom)
-        #     self.formPath.connectPath(first.leftConnector.connectorPath)
 
     ###########################################################################
     def getLeftCenter(self):
@@ -399,7 +408,7 @@ class Element(QGraphicsPolygonItem):
             delta = -20
         elif self.leftConnectorType == 3:
             delta = 20
-        point.setX(point.x() - (self.width / 2) + delta)
+        point.setX(point.x() - (self.boundingRect().width() / 2) + delta)
         return point
 
     ###########################################################################
@@ -412,7 +421,7 @@ class Element(QGraphicsPolygonItem):
             delta = 20
         elif self.rightConnectorType == 3:
             delta = -20
-        point.setX(point.x() + (self.width / 2) + delta)
+        point.setX(point.x() + (self.boundingRect().width() / 2) + delta)
         return point
 
     ###########################################################################
@@ -420,3 +429,22 @@ class Element(QGraphicsPolygonItem):
         self.compound = True
 
         self.parts.append(elem)
+
+    ###########################################################################
+    def middleConnector(self, top, bottom, type=1):
+        path = QPainterPath()
+        path.setFillRule(Qt.WindingFill)
+        if type == 1:
+                path.moveTo(top)
+                path.lineTo(bottom)
+        elif type == 2:
+            path.moveTo(top)
+            newPoint = QPoint(top.x() - 20, abs(bottom.y() + top.y())/2)
+            path.lineTo(newPoint)
+            path.lineTo(bottom)
+        elif type == 3:
+            path.moveTo(top)
+            newPoint = QPoint(top.x() + 20, abs(bottom.y() + top.y())/2)
+            path.lineTo(newPoint)
+            path.lineTo(bottom)
+        return path

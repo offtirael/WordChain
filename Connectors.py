@@ -38,6 +38,7 @@ class LeftConnector(Connector):
                 self.connectorPath.lineTo(top)
                 self.connectorCenter = newPoint
 
+
 class RightConnector(Connector):
     def __init__(self, type, bottom, top):
         super(RightConnector, self).__init__()

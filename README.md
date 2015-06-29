@@ -1,7 +1,7 @@
 WordChain
 =========
 
-Prototype application that implements some of the models from the article "Models and Metamodels for Computer-Assisted Natural Language Grammar Learning".
+Prototype application that implements some of the models from the article "Models and Metamodels for Computer-Assisted Natural Language Grammar Learning"(http://waset.org/Publication/models-and-metamodels-for-computer-assisted-natural-language-grammar-learning/10000114).
 
 Main components:
  - Meta-element editor is developed to support creating new meta-elements (like objects, actions, determiners, etc.) to be used for grammar structure constructions.
